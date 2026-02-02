@@ -1,0 +1,41 @@
+// The settings file is the entry point of every Gradle build.
+// Its primary purpose is to define the subprojects.
+// It is also used for some aspects of project-wide configuration, like managing plugins, dependencies, etc.
+// https://docs.gradle.org/current/userguide/settings_file_basics.html
+import org.jetbrains.intellij.platform.gradle.extensions.intellijPlatform
+
+pluginManagement {
+    repositories {
+        maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies/")
+        mavenCentral()
+        gradlePluginPortal()
+        google()
+    }
+}
+
+plugins {
+    id("org.jetbrains.intellij.platform.settings") version "2.10.5"
+    // Use the Foojay Toolchains plugin to automatically download JDKs required by subprojects.
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
+@Suppress("UnstableApiUsage")
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    // Use Maven Central as the default repository (where Gradle will download dependencies) in all subprojects.
+    repositories {
+        // IntelliJ Platform Gradle Plugin Repositories Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-repositories-extension.html
+        intellijPlatform {
+            defaultRepositories()
+        }
+        maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies/")
+        mavenCentral()
+        google()
+    }
+}
+
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+rootProject.name = "kotlinpoet-assistant-plugin"
+
+// If there are changes in only one of the projects, Gradle will rebuild only the one that has changed.
+// Learn more about structuring projects with Gradle - https://docs.gradle.org/8.7/userguide/multi_project_builds.html
