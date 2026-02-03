@@ -6,6 +6,9 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
+        <annotator
+            language="kotlin"
+            implementationClass="io.github.kingg22.kotlinpoet.assistant.annotator.KotlinPoetAnnotator"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
