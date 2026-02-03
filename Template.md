@@ -226,7 +226,7 @@ Therefore, the template contains only the following files:
 │   └── MyProjectService.kt                 Project level service
 ├── toolWindow
 │   └── MyToolWindowFactory.kt              Tool window factory — creates tool window content
-└── MyBundle.kt                             Bundle class providing access to the resources messages
+└── MsgBundle.kt                             Bundle class providing access to the resources messages
 ```
 
 These files are located in `src/main/kotlin`.
