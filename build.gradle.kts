@@ -27,6 +27,7 @@ kotlin {
             },
             "-Xcontext-parameters",
         )
+        optIn.addAll("kotlin.contracts.ExperimentalContracts")
         languageVersion.set(KotlinVersion.KOTLIN_2_0)
         apiVersion.set(languageVersion)
         jvmTarget.set(JvmTarget.JVM_21)
