@@ -1,3 +1,4 @@
+import com.diffplug.spotless.LineEnding
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
@@ -9,8 +10,8 @@ plugins {
     alias(libs.plugins.intellij.platform)
     alias(libs.plugins.jetbrains.changelog)
     alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.ktlint)
     alias(libs.plugins.kover)
+    alias(libs.plugins.spotless)
 }
 
 group = providers.gradleProperty("pluginGroup").get()
@@ -44,9 +45,6 @@ java {
 
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/version_catalogs.html
 dependencies {
-    // enable when use Compose to build UI
-    // ktlint(libs.ktlint.compose)
-
     // https://youtrack.jetbrains.com/issue/IJPL-159134
     // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-faq.html?from=jetbrains.org#junit5-test-framework-refers-to-junit4
     testCompileOnly(libs.junit4)
@@ -176,8 +174,23 @@ intellijPlatformTesting {
     }
 }
 
-ktlint {
-    version.set(libs.versions.ktlint.pinterest)
+spotless {
+    encoding = Charsets.UTF_8
+    lineEndings = LineEnding.PRESERVE
+    // enable when use Compose to build UI
+    // ktlint(libs.ktlint.compose)
+    kotlin {
+        ktlint(libs.versions.ktlint.pinterest.get())
+    }
+    kotlinGradle {
+        ktlint(libs.versions.ktlint.pinterest.get())
+    }
+    java {
+        importOrder("", "java", "javax", "\\#")
+        removeUnusedImports()
+        palantirJavaFormat(libs.versions.palantir.get()).formatJavadoc(true)
+        formatAnnotations()
+    }
 }
 
 tasks.publishPlugin {

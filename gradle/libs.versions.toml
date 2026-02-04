@@ -12,14 +12,18 @@ kotlin = "2.1.20"
 # https://github.com/pinterest/ktlint/releases
 ktlint-pinterest = "1.8.0"
 
-# https://github.com/jlleitschuh/ktlint-gradle/releases
-ktlint-plugin = "14.0.1"
-
 # https://github.com/mrmans0n/compose-rules/releases
 ktlint-compose = "0.5.6"
 
 # https://github.com/Kotlin/kotlinx-kover/releases
 kover = "0.9.5"
+
+# https://github.com/palantir/palantir-java-format/releases
+palantir = "2.86.0"
+
+# https://github.com/diffplug/spotless/blob/main/plugin-gradle/CHANGES.md
+# https://github.com/diffplug/spotless/releases
+spotless = "8.2.1"
 
 [libraries]
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
@@ -32,4 +36,4 @@ jetbrains-changelog = { id = "org.jetbrains.changelog", version.ref = "jetbrains
 intellij-platform = { id = "org.jetbrains.intellij.platform" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
-ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-plugin" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

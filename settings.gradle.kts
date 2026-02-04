@@ -6,10 +6,10 @@ import org.jetbrains.intellij.platform.gradle.extensions.intellijPlatform
 
 pluginManagement {
     repositories {
-        maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies/")
         mavenCentral()
         gradlePluginPortal()
         google()
+        maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies/")
     }
 }
 
@@ -27,12 +27,12 @@ dependencyResolutionManagement {
     // Use Maven Central as the default repository (where Gradle will download dependencies) in all subprojects.
     repositories {
         // IntelliJ Platform Gradle Plugin Repositories Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-repositories-extension.html
+        mavenCentral()
+        google()
         intellijPlatform {
             defaultRepositories()
         }
         maven("https://packages.jetbrains.team/maven/p/ij/intellij-dependencies/")
-        mavenCentral()
-        google()
     }
 }
 
