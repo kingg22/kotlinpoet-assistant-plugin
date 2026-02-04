@@ -4,8 +4,6 @@ import io.github.kingg22.kotlinpoet.assistant.Constants
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentType
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaType
-import org.jetbrains.kotlin.name.ClassId
-import org.jetbrains.kotlin.name.FqName
 
 /**
  * Utility to map K2 Analysis API types to our Domain ArgumentType.
@@ -41,20 +39,10 @@ private val primitiveTypes = setOf(
     "kotlin.Float",
 )
 
-// Definir los tipos soportados. Esto podría moverse a Constants.
-private val supported = setOf(
-    Constants.ClassIds.CODE_BLOCK,
-    Constants.ClassIds.CODE_BLOCK_BUILDER,
-    ClassId.topLevel(FqName("com.squareup.kotlinpoet.FunSpec.Builder")),
-    ClassId.topLevel(FqName("com.squareup.kotlinpoet.TypeSpec.Builder")),
-    ClassId.topLevel(FqName("com.squareup.kotlinpoet.PropertySpec.Builder")),
-    ClassId.topLevel(FqName("com.squareup.kotlinpoet.FileSpec.Builder")),
-)
-
 /** Checks if a given type matches any of the known KotlinPoet builders that delegate to CodeBlock. */
 fun KaType.isKotlinPoetBuilder(): Boolean {
     // Check hierarchy or exact match
-    if (this is KaClassType && this.classId in supported) return true
+    if (this is KaClassType && this.classId in Constants.ClassIds.ALL) return true
 
     // TODO: Considerar verificar supertipos si KotlinPoet usa herencia para estos builders
     return false
