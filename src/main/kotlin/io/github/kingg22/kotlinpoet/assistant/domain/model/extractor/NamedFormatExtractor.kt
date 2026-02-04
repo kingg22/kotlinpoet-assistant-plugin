@@ -6,12 +6,14 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.extractor.mapper.Argu
 import io.github.kingg22.kotlinpoet.assistant.domain.model.extractor.mapper.isKotlinPoetBuilder
 import io.github.kingg22.kotlinpoet.assistant.domain.model.parser.StringFormatParser
 import io.github.kingg22.kotlinpoet.assistant.domain.model.parser.StringFormatParserImpl
+import io.github.kingg22.kotlinpoet.assistant.util.PsiTextRangeHelper
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
+import org.jetbrains.kotlin.psi.KtValueArgument
 
 class NamedFormatExtractor(private val parser: StringFormatParser = StringFormatParserImpl()) : FormatContextExtractor {
     override fun extract(call: KtCallExpression): KotlinPoetCallContext? {
@@ -25,7 +27,7 @@ class NamedFormatExtractor(private val parser: StringFormatParser = StringFormat
 
             if (receiverType == null || !receiverType.isKotlinPoetBuilder()) return@analyze null
 
-            val args = call.valueArguments
+            val args: List<KtValueArgument> = call.valueArguments
             // addNamed(format, map) -> requiere al menos 2 argumentos
             if (args.size < 2) return@analyze null
 
@@ -36,8 +38,10 @@ class NamedFormatExtractor(private val parser: StringFormatParser = StringFormat
                 ?: formatArgExpr?.evaluate()?.value as? String
 
             if (formatString == null) return@analyze null
+            if (formatArgExpr == null) return@analyze null
 
-            val formatModel = parser.parse(formatString)
+            val baseOffset = PsiTextRangeHelper.getContentStartOffset(formatArgExpr)
+            val formatModel = parser.parse(formatString).withBaseOffset(baseOffset)
 
             // 2. Extraer Mapa
             val mapArgExpr = args[1].getArgumentExpression()
@@ -50,7 +54,7 @@ class NamedFormatExtractor(private val parser: StringFormatParser = StringFormat
                 // Simplificación: Asumimos que si es una llamada y tiene args Pairs, es un mapa.
                 // Una implementación estricta verificaría el resolvedCall del mapa.
 
-                val mapArgs = mapArgExpr.valueArguments
+                val mapArgs: List<KtValueArgument> = mapArgExpr.valueArguments
                 for (entryArg in mapArgs) {
                     val entryExpr = entryArg.getArgumentExpression()
 
