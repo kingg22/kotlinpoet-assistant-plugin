@@ -41,7 +41,7 @@ class NamedFormatExtractor(private val parser: StringFormatParser = StringFormat
             if (formatArgExpr == null) return@analyze null
 
             val baseOffset = PsiTextRangeHelper.getContentStartOffset(formatArgExpr)
-            val formatModel = parser.parse(formatString).withBaseOffset(baseOffset)
+            val formatModel = parser.parse(formatString, true).withBaseOffset(baseOffset)
 
             // 2. Extraer Mapa
             val mapArgExpr = args[1].getArgumentExpression()

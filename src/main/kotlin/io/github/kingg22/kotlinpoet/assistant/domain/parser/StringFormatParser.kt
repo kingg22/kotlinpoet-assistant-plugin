@@ -7,5 +7,5 @@ interface StringFormatParser {
      * Analiza el [rawString] y extrae placeholders, símbolos de control y errores.
      * No debe lanzar excepciones ante sintaxis inválida.
      */
-    fun parse(rawString: String): FormatStringModel
+    fun parse(rawString: String, isNamedStyle: Boolean = false): FormatStringModel
 }

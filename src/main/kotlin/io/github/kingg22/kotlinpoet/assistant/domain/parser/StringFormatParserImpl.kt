@@ -34,7 +34,7 @@ class StringFormatParserImpl : StringFormatParser {
         fun peek(offset: Int = 1): Char? = if (cursor + offset < rawString.length) rawString[cursor + offset] else null
     }
 
-    override fun parse(rawString: String): FormatStringModel {
+    override fun parse(rawString: String, isNamedStyle: Boolean): FormatStringModel {
         val state = ParseState(rawString)
 
         while (!state.isAtEnd()) {
@@ -47,7 +47,7 @@ class StringFormatParserImpl : StringFormatParser {
             }
         }
 
-        return buildModel(rawString, state)
+        return buildModel(rawString, state, isNamedStyle)
     }
 
     /**
@@ -207,7 +207,7 @@ class StringFormatParserImpl : StringFormatParser {
         state.errors.add(FormatProblem(ProblemSeverity.ERROR, msg, ProblemTarget.TextRange(start until end)))
     }
 
-    private fun buildModel(rawText: String, state: ParseState): FormatStringModel {
+    private fun buildModel(rawText: String, state: ParseState, forceNamed: Boolean): FormatStringModel {
         // Determinar estilo final
         val style = when {
             state.errors.isNotEmpty() && state.placeholders.isEmpty() -> FormatStringModel.FormatStyle.None
@@ -220,7 +220,9 @@ class StringFormatParserImpl : StringFormatParser {
         }
 
         // Si detectamos mezcla inválida y no había errores explícitos, agregamos uno global
-        if (style == FormatStringModel.FormatStyle.Mixed) {
+        if (style == FormatStringModel.FormatStyle.Mixed ||
+            (forceNamed && style != FormatStringModel.FormatStyle.Named)
+        ) {
             // Nota: El rango es 0 para indicar error global del string, o podríamos calcular el rango del primer conflicto
             reportError(state, 0, rawText.length, KPoetAssistantBundle.getMessage("argument.format.invalid.mix"))
         }
