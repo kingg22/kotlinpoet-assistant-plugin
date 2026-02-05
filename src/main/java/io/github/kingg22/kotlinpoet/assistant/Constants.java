@@ -5,12 +5,17 @@ import org.jetbrains.kotlin.name.ClassId;
 import org.jetbrains.kotlin.name.FqName;
 import org.jetbrains.kotlin.name.Name;
 
+import java.util.Set;
+
 public final class Constants {
     private Constants() {
         throw new UnsupportedOperationException();
     }
 
     private static final FqName KOTLINPOET_PACKAGE = new FqName("com.squareup.kotlinpoet");
+
+    public static final @NotNull Set<String> KOTLINPOET_CALLS =
+            Set.of("addStatement", "addCode", "CodeBlock.of", "beginControlFlow", "addNamed", "add");
 
     public static final class ClassIds {
         private ClassIds() {

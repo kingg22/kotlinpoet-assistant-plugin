@@ -9,6 +9,19 @@
         <annotator
             language="kotlin"
             implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.annotator.KotlinPoetAnnotator"/>
+
+        <completion.contributor
+            language="kotlin"
+            implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.completion.KotlinPoetCompletionContributor"/>
+
+        <completion.confidence
+            language="kotlin"
+            order="first"
+            implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.completion.KotlinPoetCompletionConfidence"/>
+
+        <typedHandler
+            order="first"
+            implementation="io.github.kingg22.kotlinpoet.assistant.infrastructure.completion.KotlinPoetTypedHandler"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
