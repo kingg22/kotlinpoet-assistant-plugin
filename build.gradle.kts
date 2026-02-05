@@ -186,9 +186,9 @@ spotless {
         ktlint(libs.versions.ktlint.pinterest.get())
     }
     java {
-        importOrder("", "java", "javax", "\\#")
         removeUnusedImports()
         palantirJavaFormat(libs.versions.palantir.get()).formatJavadoc(true)
+        importOrder("", "java", "javax", "\\#")
         formatAnnotations()
     }
 }
