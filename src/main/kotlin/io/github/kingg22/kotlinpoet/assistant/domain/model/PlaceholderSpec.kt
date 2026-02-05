@@ -2,14 +2,14 @@ package io.github.kingg22.kotlinpoet.assistant.domain.model
 
 data class PlaceholderSpec(val kind: FormatKind, val binding: PlaceholderBinding, val textRange: IntRange) {
     @JvmInline
-    value class FormatKind private constructor(val value: String) {
+    value class FormatKind private constructor(val value: Char) {
         companion object {
-            val LITERAL: FormatKind = FormatKind("L")
-            val STRING: FormatKind = FormatKind("S")
-            val TYPE: FormatKind = FormatKind("T")
-            val MEMBER: FormatKind = FormatKind("M")
-            val NAME: FormatKind = FormatKind("N")
-            val STRING_TEMPLATE: FormatKind = FormatKind("P")
+            val LITERAL: FormatKind = FormatKind('L')
+            val STRING: FormatKind = FormatKind('S')
+            val TYPE: FormatKind = FormatKind('T')
+            val MEMBER: FormatKind = FormatKind('M')
+            val NAME: FormatKind = FormatKind('N')
+            val STRING_TEMPLATE: FormatKind = FormatKind('P')
 
             private val ALL = mapOf(
                 'L' to LITERAL,

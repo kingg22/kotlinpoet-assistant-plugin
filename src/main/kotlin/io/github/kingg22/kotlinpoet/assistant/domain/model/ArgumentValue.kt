@@ -16,6 +16,9 @@ data class ArgumentValue private constructor(val index: Int?, val name: String?,
         }
         require(index == null || index > 0) { "Index must be positive" }
     }
+    val isRelative: Boolean get() = index == null
+    val isPositional: Boolean get() = index != null
+    val isNamed: Boolean get() = name != null
 
     companion object {
         @JvmStatic
