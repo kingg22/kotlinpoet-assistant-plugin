@@ -1,7 +1,7 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.model
 
-import io.github.kingg22.kotlinpoet.assistant.domain.model.validation.FormatProblem
-import io.github.kingg22.kotlinpoet.assistant.domain.model.validation.ProblemTarget
+import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatProblem
+import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemTarget
 import org.jetbrains.annotations.Contract
 
 /** Model a string with format specifiers. */
