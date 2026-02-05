@@ -19,6 +19,8 @@ public final class Constants {
 
         public static final ClassId CODE_BLOCK = new ClassId(KOTLINPOET_PACKAGE, Name.identifier("CodeBlock"));
 
+        public static final ClassId CODE_BLOCK_COMPANION = new ClassId(KOTLINPOET_PACKAGE, Name.identifier("CodeBlock.Companion"));
+
         public static final ClassId CODE_BLOCK_BUILDER =
                 new ClassId(KOTLINPOET_PACKAGE, Name.identifier("CodeBlock.Builder"));
 
@@ -33,7 +35,7 @@ public final class Constants {
                 new ClassId(KOTLINPOET_PACKAGE, Name.identifier("FileSpec.Builder"));
 
         public static @NotNull ClassId[] ALL = {
-            CODE_BLOCK, CODE_BLOCK_BUILDER, FUNSPEC_BUILDER, TYPE_SPEC_BUILDER, PROPERTYSPEC_BUILDER, FILESPEC_BUILDER
+            CODE_BLOCK, CODE_BLOCK_BUILDER, CODE_BLOCK_COMPANION, FUNSPEC_BUILDER, TYPE_SPEC_BUILDER, PROPERTYSPEC_BUILDER, FILESPEC_BUILDER
         };
     }
 }
