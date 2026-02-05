@@ -10,6 +10,12 @@
             language="kotlin"
             implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.annotator.KotlinPoetAnnotator"/>
 
+        <psi.symbolReferenceProvider
+            hostLanguage="kotlin"
+            hostElementClass="org.jetbrains.kotlin.psi.KtStringTemplateExpression"
+            targetClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.references.KotlinPoetArgumentSymbol"
+            implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.references.KotlinPoetReferenceProvider"/>
+
         <completion.contributor
             language="kotlin"
             implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.completion.KotlinPoetCompletionContributor"/>
