@@ -3,9 +3,11 @@ package io.github.kingg22.kotlinpoet.assistant.annotator
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
+import com.intellij.util.ExceptionUtil
 import io.github.kingg22.kotlinpoet.assistant.domain.model.binding.BindingEngineResolver
 import io.github.kingg22.kotlinpoet.assistant.domain.model.extractor.FormatContextExtractorRegistry
 import io.github.kingg22.kotlinpoet.assistant.domain.model.validation.BoundContext
@@ -45,6 +47,7 @@ constructor(
 
             problems.forEach { it.renderProblem(element, holder) }
         } catch (e: Exception) {
+            if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
             // Fail-safe para no romper el editor si el binding falla inesperadamente
             logger.error("Error binding format or validate Kotlinpoet", e)
         }
