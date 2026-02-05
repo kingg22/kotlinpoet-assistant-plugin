@@ -6,6 +6,9 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
+        <errorHandler
+            implementation="io.github.kingg22.kotlinpoet.assistant.infrastructure.reporting.PluginErrorReporting"/>
+
         <annotator
             language="kotlin"
             implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.annotator.KotlinPoetAnnotator"/>
