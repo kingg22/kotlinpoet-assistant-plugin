@@ -15,6 +15,7 @@ import com.intellij.util.ExceptionUtil
 import io.github.kingg22.kotlinpoet.assistant.domain.binding.BindingEngineResolver
 import io.github.kingg22.kotlinpoet.assistant.domain.extractor.FormatContextExtractorRegistry
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
+import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.toTextRange
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
@@ -56,10 +57,16 @@ class KotlinPoetReferenceProvider(
             val args = call.valueArguments // La lista PSI real
 
             for ((placeholder, argValue) in boundPlaceholders) {
-                if (argValue == null) continue
-
-                // A. Resolver el PSI Target usando el ID del ArgumentValue
-                val targetExpression = resolvePsiTarget(args, argValue)
+                val targetExpression: KtExpression? = if (argValue == null) {
+                    if (placeholder.binding is PlaceholderSpec.PlaceholderBinding.Named && args.size >= 2) {
+                        args[1].getArgumentExpression()
+                    } else {
+                        continue
+                    }
+                } else {
+                    // A. Resolver el PSI Target usando el ID del ArgumentValue
+                    resolvePsiTarget(args, argValue)
+                }
 
                 if (targetExpression != null) {
                     // B. Calcular el rango relativo para la referencia
@@ -90,7 +97,8 @@ class KotlinPoetReferenceProvider(
                         clampedEnd - hostStart,
                     )
 
-                    val symbol = KotlinPoetArgumentSymbol(targetExpression, argValue.index ?: -1)
+                    // asume the argument is the second one because the first es the string template
+                    val symbol = KotlinPoetArgumentSymbol(targetExpression, argValue?.index ?: 1)
 
                     // Validación final (ya debería ser segura)
                     if (relativeRange.startOffset >= 0 && relativeRange.endOffset <= element.textLength) {
@@ -119,7 +127,11 @@ class KotlinPoetReferenceProvider(
                 null
             }
         } else {
-            null
+            if (psiArgs.size >= 2) {
+                psiArgs[1].getArgumentExpression()
+            } else {
+                null
+            }
         }
 
     override fun getSearchRequests(project: Project, target: Symbol): Collection<SearchRequest> = emptyList()
