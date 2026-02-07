@@ -90,15 +90,11 @@ class KotlinPoetReferenceProvider(
                         clampedEnd - hostStart,
                     )
 
+                    val symbol = KotlinPoetArgumentSymbol(targetExpression, argValue.index ?: -1)
+
                     // Validación final (ya debería ser segura)
                     if (relativeRange.startOffset >= 0 && relativeRange.endOffset <= element.textLength) {
-                        references.add(
-                            KotlinPoetPlaceholderReference(
-                                element,
-                                relativeRange,
-                                KotlinPoetArgumentSymbol(targetExpression),
-                            ),
-                        )
+                        references += KotlinPoetPlaceholderReference(element, relativeRange, symbol)
                     }
                 }
             }

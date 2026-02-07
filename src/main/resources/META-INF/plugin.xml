@@ -31,6 +31,10 @@
         <typedHandler
             order="first"
             implementation="io.github.kingg22.kotlinpoet.assistant.infrastructure.completion.KotlinPoetTypedHandler"/>
+
+        <searcher
+            forClass="com.intellij.find.usages.api.UsageSearchParameters"
+            implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.references.KotlinPoetFormatUsageSearcher"/>
     </extensions>
 
     <extensions defaultExtensionNs="org.jetbrains.kotlin">
