@@ -21,7 +21,7 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression
  * @property argumentIndex índice para poder identificar el argumento dentro de la llamada
  */
 @Suppress("UnstableApiUsage")
-data class KotlinPoetArgumentSymbol(val expression: KtExpression, val argumentIndex: Int) :
+data class KotlinPoetArgumentSymbol(val expression: KtExpression) :
     Symbol,
     SearchTarget,
     NavigatableSymbol {
@@ -30,7 +30,7 @@ data class KotlinPoetArgumentSymbol(val expression: KtExpression, val argumentIn
     override fun createPointer(): Pointer<out KotlinPoetArgumentSymbol> = Pointer.delegatingPointer(
         SmartPointerManager.createPointer(expression),
     ) { ktExpression: KtExpression ->
-        KotlinPoetArgumentSymbol(ktExpression, argumentIndex)
+        KotlinPoetArgumentSymbol(ktExpression)
     }
 
     override fun presentation(): TargetPresentation = TargetPresentation.builder(expression.text).presentation()
