@@ -9,11 +9,8 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression;
 public final class PsiTextRangeHelper {
     /** Obtiene el offset inicial real del contenido de un string de Kotlin, saltándose las comillas (" o """). */
     public static int getContentStartOffset(@NotNull PsiElement element) {
-        if (element instanceof KtStringTemplateExpression ktStringTemplate) {
-            var contentRange = getTextStartOffset(ktStringTemplate);
-            return ktStringTemplate.getTextRange().getStartOffset() + contentRange;
-        }
-        return element.getTextRange().getStartOffset();
+        var contentRange = getTextStartOffset(element);
+        return element.getTextRange().getStartOffset() + contentRange;
     }
 
     /**
