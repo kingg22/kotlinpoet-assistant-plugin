@@ -11,7 +11,6 @@ import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
 import org.jetbrains.kotlin.psi.KtCallExpression
-import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
 class VarargFormatExtractor(private val parser: StringFormatParser = StringFormatParserImpl()) :
     FormatContextExtractor {
@@ -37,12 +36,7 @@ class VarargFormatExtractor(private val parser: StringFormatParser = StringForma
         val formatArgExpr = args.firstOrNull()?.getArgumentExpression() ?: return@analyze null
 
         // Intentamos resolver el valor constante del string
-        val formatString = (formatArgExpr as? KtStringTemplateExpression)?.entries
-            ?.joinToString("") { it.text } // Simple extraction for literals
-            // Fallback a evaluación constante si es una variable const (más costoso)
-            ?: formatArgExpr.evaluate()?.value as? String
-
-        if (formatString == null) return@analyze null // No podemos analizar strings dinámicos/runtime
+        val formatString = resolveStringOrNull(formatArgExpr) ?: return@analyze null
 
         // 4. Parsear el modelo y recalcular los offsets relativos
         val formatModel = parser.parse(formatString).let { model ->

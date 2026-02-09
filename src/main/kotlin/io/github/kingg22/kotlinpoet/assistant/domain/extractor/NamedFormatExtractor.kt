@@ -12,7 +12,6 @@ import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
-import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 
 class NamedFormatExtractor(private val parser: StringFormatParser = StringFormatParserImpl()) : FormatContextExtractor {
@@ -32,13 +31,8 @@ class NamedFormatExtractor(private val parser: StringFormatParser = StringFormat
             if (args.size < 2) return@analyze null
 
             // 1. Extraer Formato
-            val formatArgExpr = args[0].getArgumentExpression()
-            val formatString = (formatArgExpr as? KtStringTemplateExpression)?.entries
-                ?.joinToString("") { it.text }
-                ?: formatArgExpr?.evaluate()?.value as? String
-
-            if (formatString == null) return@analyze null
-            if (formatArgExpr == null) return@analyze null
+            val formatArgExpr = args[0].getArgumentExpression() ?: return@analyze null
+            val formatString = resolveStringOrNull(formatArgExpr) ?: return@analyze null
 
             val formatModel = parser.parse(formatString, true).let { model ->
                 if (!boundOffsetOfCall) return@let model
