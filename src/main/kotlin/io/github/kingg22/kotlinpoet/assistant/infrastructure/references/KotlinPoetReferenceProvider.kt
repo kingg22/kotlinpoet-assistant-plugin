@@ -39,11 +39,26 @@ class KotlinPoetReferenceProvider(
         return valueArgumentList.arguments.indexOf(valueArgument) == 0
     }
 
+    private fun hintsCheck(hints: PsiSymbolReferenceHints): Boolean {
+        if (!hints.referenceClass.isAssignableFrom(KotlinPoetPlaceholderReference::class.java)) {
+            return false
+        }
+
+        val targetClass = hints.targetClass
+        if (targetClass != null && !targetClass.isAssignableFrom(KotlinPoetArgumentSymbol::class.java)) {
+            return false
+        }
+
+        val target = hints.target
+        return target == null || target is KotlinPoetArgumentSymbol
+    }
+
     override fun getReferences(
         element: PsiExternalReferenceHost,
         hints: PsiSymbolReferenceHints,
     ): Collection<PsiSymbolReference> {
         if (element !is KtStringTemplateExpression) return emptyList()
+        if (!hintsCheck(hints)) return emptyList()
 
         // El contexto completo: CodeBlock.of("...", arg1, arg2)
         if (!isFirstArgument(element)) return emptyList()
