@@ -16,7 +16,7 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 
 class NamedFormatExtractor(private val parser: StringFormatParser = StringFormatParserImpl()) : FormatContextExtractor {
-    override fun extract(call: KtCallExpression): KotlinPoetCallContext? {
+    override fun extract(call: KtCallExpression, boundOffsetOfCall: Boolean): KotlinPoetCallContext? {
         // Filtro rápido por nombre antes de entrar al análisis pesado
         if (call.calleeExpression?.text != "addNamed") return null
 
@@ -40,8 +40,11 @@ class NamedFormatExtractor(private val parser: StringFormatParser = StringFormat
             if (formatString == null) return@analyze null
             if (formatArgExpr == null) return@analyze null
 
-            val baseOffset = PsiTextRangeHelper.getContentStartOffset(formatArgExpr)
-            val formatModel = parser.parse(formatString, true).withBaseOffset(baseOffset)
+            val formatModel = parser.parse(formatString, true).let { model ->
+                if (!boundOffsetOfCall) return@let model
+                val baseOffset = PsiTextRangeHelper.getContentStartOffset(formatArgExpr)
+                model.withBaseOffset(baseOffset)
+            }
 
             // 2. Extraer Mapa
             val mapArgExpr = args[1].getArgumentExpression()

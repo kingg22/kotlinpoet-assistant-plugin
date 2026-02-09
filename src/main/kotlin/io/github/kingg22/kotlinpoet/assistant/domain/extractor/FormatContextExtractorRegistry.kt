@@ -9,5 +9,6 @@ object FormatContextExtractorRegistry {
     )
 
     @JvmStatic
-    fun extract(call: KtCallExpression): KotlinPoetCallContext? = extractors.firstNotNullOfOrNull { it.extract(call) }
+    fun extract(call: KtCallExpression, boundOffsetOfCall: Boolean = false): KotlinPoetCallContext? =
+        extractors.firstNotNullOfOrNull { it.extract(call, boundOffsetOfCall) }
 }

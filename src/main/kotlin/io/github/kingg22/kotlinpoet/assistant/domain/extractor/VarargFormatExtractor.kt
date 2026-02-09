@@ -16,7 +16,7 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 class VarargFormatExtractor(private val parser: StringFormatParser = StringFormatParserImpl()) :
     FormatContextExtractor {
 
-    override fun extract(call: KtCallExpression): KotlinPoetCallContext? = analyze(call) {
+    override fun extract(call: KtCallExpression, boundOffsetOfCall: Boolean): KotlinPoetCallContext? = analyze(call) {
         val resolvedCall: KaCallableMemberCall<*, *> =
             call.resolveToCall()?.singleCallOrNull() ?: return@analyze null
         val receiverType = resolvedCall.partiallyAppliedSymbol.dispatchReceiver?.type
@@ -44,11 +44,13 @@ class VarargFormatExtractor(private val parser: StringFormatParser = StringForma
 
         if (formatString == null) return@analyze null // No podemos analizar strings dinámicos/runtime
 
-        // 3.1. Calculamos el offset base
-        val baseOffset = PsiTextRangeHelper.getContentStartOffset(formatArgExpr)
-
         // 4. Parsear el modelo y recalcular los offsets relativos
-        val formatModel = parser.parse(formatString).withBaseOffset(baseOffset)
+        val formatModel = parser.parse(formatString).let { model ->
+            if (!boundOffsetOfCall) return@let model
+            // Calculamos el offset base
+            val baseOffset = PsiTextRangeHelper.getContentStartOffset(formatArgExpr)
+            model.withBaseOffset(baseOffset)
+        }
 
         // 5. Extraer argumentos VarArg
         // Saltamos el primero (que es el format string)

@@ -31,7 +31,7 @@ class KotlinPoetAnnotator(
 
         try {
             // 1. Extraemos el contexto (Modelos de dominio)
-            val callContext = extractorRegistry.extract(element) ?: return
+            val callContext = extractorRegistry.extract(element, true) ?: return
 
             element.putUserData(KEY_IS_KOTLIN_POET, true)
 
