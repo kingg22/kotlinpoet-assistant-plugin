@@ -11,6 +11,5 @@ sealed interface ArgumentSource {
     value class VarArgs(val arguments: List<ArgumentValue>) : ArgumentSource
 
     /** Equivalent to named arguments stored in a [Map] */
-    @JvmInline
-    value class NamedMap(val entries: Map<String, ArgumentValue>) : ArgumentSource
+    data class NamedMap(val entries: Map<String, ArgumentValue>, val isComplete: Boolean) : ArgumentSource
 }
