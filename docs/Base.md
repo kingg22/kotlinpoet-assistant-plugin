@@ -26,33 +26,8 @@ Nunca acoples:
 
 * el **string**
 * el **formato**
-* el **contexto PSI**
-* la **lógica de ayuda IDE**
 
 Todo eso se **orquesta**, no se mezcla.
-
----
-
-## Capas Principales
-
-```
-┌────────────────────────────┐
-│        IDE / IntelliJ      │
-│  (PSI, References, Gutter) │
-└────────────┬───────────────┘
-             │
-┌────────────▼───────────────┐
-│     Integration Layer      │  ← PSI adapters
-└────────────┬───────────────┘
-             │
-┌────────────▼───────────────┐
-│   String Assistance Core   │  ← dominio reusable
-└────────────┬───────────────┘
-             │
-┌────────────▼───────────────┐
-│     KotlinPoet Adapters    │  ← implementación concreta
-└────────────────────────────┘
-```
 
 ---
 
@@ -60,13 +35,11 @@ Todo eso se **orquesta**, no se mezcla.
 
 ### 1. `FormatStringModel`
 
-Representa **un string con intención semántica**.
+Representa **un string con intención semántica**, pero el texto viene del PSI.
 
 ```kotlin
-data class FormatStringModel(val rawText: String, val style: FormatStyle, val placeholders: List<PlaceholderSpec>)
+data class FormatStringModel(val text: FormatText, val style: FormatStyle, val placeholders: List<PlaceholderSpec>)
 ```
-
-No sabe nada de PSI ni de KotlinPoet.
 
 ---
 
@@ -93,7 +66,7 @@ sealed interface FormatStyle {
 Unidad mínima del análisis.
 
 ```kotlin
-data class PlaceholderSpec(val kind: FormatKind, val binding: PlaceholderBinding, val textRange: IntRange)
+data class PlaceholderSpec(val kind: FormatKind, val binding: PlaceholderBinding, val span: TextSpan)
 
 value class FormatKind private constructor(val value: String) {
   companion object {
@@ -116,6 +89,17 @@ sealed interface PlaceholderBinding {
 }
 ```
 
+### 4. `FormatText` y `TextSpan`
+
+`FormatText` es un string segmentado con rangos absolutos del PSI.  
+`TextSpan` permite uno o varios rangos (concatenaciones).
+
+```kotlin
+data class FormatText(val segments: List<FormatTextSegment>)
+data class FormatTextSegment(val text: String, val range: IntRange, val kind: SegmentKind)
+data class TextSpan(val ranges: List<IntRange>)
+```
+
 Esto permite:
 
 * referencias precisas
@@ -124,13 +108,13 @@ Esto permite:
 
 ---
 
-### 4. `StringFormatParser`
+### 5. `StringFormatParser`
 
 Responsable de **convertir raw string → segmentos**.
 
 ```kotlin
 sealed interface StringFormatParser {
-  fun parse(rawString: String, arguments: List<ArgumentValue>): FormatStringModel
+  fun parse(text: FormatText, isNamedStyle: Boolean = false): FormatStringModel
 }
 ```
 
@@ -147,14 +131,6 @@ Implementaciones:
 ## Integración con IntelliJ
 
 ### 5. `PsiStringReferenceProvider`
-
-Aquí **NO se parsea formato**.
-
-Solo se traduce:
-
-```
-FormatSegment → PsiReference
-```
 
 ```kotlin
 class FormatPlaceholderReferenceProvider(
@@ -199,22 +175,20 @@ IDE Magic ✨
 
 ### ✅ Haz
 
-* Mantén los parsers **puros**
+* Mantén los parsers **puros** lo más posible
 * Modela el dominio antes del PSI
 * Usa `sealed interface` para formatos y contextos
 * Prefiere **composición sobre herencia**
 
 ### ❌ No hagas
 
-* No accedas a PSI desde el dominio
 * No mezcles validación con parsing
-* No codifiques formatos “especiales” inline
+* No codifiques formatos “especiales” hardcoded
 
 ---
 
 ## Señales de que vas bien
 
 * Agregar un nuevo format **no rompe nada**
-* Puedes testear el core **sin IntelliJ**
+* Puedes testear el core **sin IntelliJ** o mocks mínimos.
 * El PSI layer es delgado y aburrido
-* Un agente IA puede seguir el flujo sin contexto previo
