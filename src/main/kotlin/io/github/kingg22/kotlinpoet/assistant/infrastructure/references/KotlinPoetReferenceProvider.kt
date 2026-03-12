@@ -8,6 +8,7 @@ import com.intellij.model.psi.PsiSymbolReferenceProvider
 import com.intellij.model.search.SearchRequest
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
@@ -66,6 +67,12 @@ class KotlinPoetReferenceProvider(
             ?: return emptyList()
 
         try {
+            // 0. Dumb Aware
+            if (DumbService.isDumb(call.project)) {
+                logger.info("Skipping references in dumb mode")
+                return emptyList()
+            }
+
             // 1 PSI a Dominio
             val context = extractorRegistry.extract(call) ?: return emptyList()
 
