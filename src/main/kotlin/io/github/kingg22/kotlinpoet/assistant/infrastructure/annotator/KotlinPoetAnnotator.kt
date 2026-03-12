@@ -44,7 +44,7 @@ class KotlinPoetAnnotator(
             // 3. Lógica de Binding y Validación
             val bindingEngine = bindingResolver.forStyle(callContext.format.style)
             val boundContext = bindingEngine.bind(callContext.format, callContext.arguments)
-            val problems = validatorRegistry.validate(BoundContext(boundContext))
+            val problems = validatorRegistry.validate(BoundContext(boundContext, callContext.arguments))
 
             problems.forEach { it.renderProblem(element, holder) }
             if (problems.isEmpty()) {

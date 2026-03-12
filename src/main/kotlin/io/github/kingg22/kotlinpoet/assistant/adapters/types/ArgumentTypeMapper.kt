@@ -2,6 +2,7 @@ package io.github.kingg22.kotlinpoet.assistant.adapters.types
 
 import io.github.kingg22.kotlinpoet.assistant.Constants
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentType
+import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaType
 
@@ -10,7 +11,7 @@ import org.jetbrains.kotlin.analysis.api.types.KaType
  */
 object ArgumentTypeMapper {
     @JvmStatic
-    fun map(type: KaType?): ArgumentType {
+    fun KaSession.map(type: KaType?): ArgumentType {
         if (type == null) return ArgumentType.Unknown("Type is null")
 
         if (type is KaClassType) {
@@ -20,11 +21,15 @@ object ArgumentTypeMapper {
             if (fqName == "kotlin.String") return ArgumentType.StringType
 
             // 2. Check for Primitives (Int, Boolean, etc.)
-            if (fqName in primitiveTypes) return ArgumentType.Primitive
+            if (fqName in primitiveTypes) return ArgumentType.Primitive(fqName)
 
-            // 3. Check for specific Class types
-            // We capture the Fully Qualified Name to help the Validator later
-            return ArgumentType.Class(fqName)
+            // 3. Capture class type + supertypes to allow hierarchy checks
+            val supertypes = type.allSupertypes
+                .mapNotNull { superType ->
+                    (superType as? KaClassType)?.classId?.asSingleFqName()?.asString()
+                }
+                .toSet()
+            return ArgumentType.Class(fqName, supertypes)
         }
 
         return ArgumentType.Unknown("Complex or unresolved type: $type")
