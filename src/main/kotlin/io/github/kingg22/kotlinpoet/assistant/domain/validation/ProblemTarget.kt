@@ -15,7 +15,10 @@ sealed interface ProblemTarget {
         SpanTarget,
         ProblemTarget
 
-    // data class Argument(override val range: IntRange) : IntRangeTarget
+    /** El problema está ligado a un argumento */
+    data class Argument(override val span: TextSpan) :
+        SpanTarget,
+        ProblemTarget
 
     /** El problema es un rango específico relativo al string de formato (ej.: un placeholder inválido) */
     data class TextSpanTarget(override val span: TextSpan) :

@@ -15,6 +15,8 @@ data class TextSpan(val ranges: List<IntRange>) {
 
     fun singleRangeOrNull(): IntRange? = ranges.singleOrNull()
 
+    operator fun plus(other: TextSpan): TextSpan = TextSpan(ranges + other.ranges)
+
     companion object {
         val Empty: TextSpan = TextSpan(emptyList())
 

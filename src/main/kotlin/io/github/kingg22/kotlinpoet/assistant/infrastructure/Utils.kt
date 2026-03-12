@@ -26,8 +26,7 @@ fun TextSpan.toTextRanges(): List<TextRange> = ranges.map { it.toTextRange() }
 
 fun ProblemTarget.toTextRanges(element: PsiElement): List<TextRange> = when (this) {
     ProblemTarget.Call -> listOf(element.textRange)
-    is ProblemTarget.TextSpanTarget -> span.toTextRanges()
-    is ProblemTarget.Placeholder -> span.toTextRanges()
+    is ProblemTarget.TextSpanTarget, is ProblemTarget.Placeholder, is ProblemTarget.Argument -> span.toTextRanges()
 }
 
 fun KtCallExpression.looksLikeKotlinPoetCall(): Boolean {
