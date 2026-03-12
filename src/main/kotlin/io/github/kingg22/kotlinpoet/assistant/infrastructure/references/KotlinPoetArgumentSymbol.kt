@@ -13,7 +13,6 @@ import com.intellij.psi.SmartPointerManager
 import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
-import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
 /**
  * Representa un argumento de KotlinPoet como un destino navegable.
@@ -39,11 +38,10 @@ data class KotlinPoetArgumentSymbol(val expression: KtExpression) :
         SymbolNavigationService.getInstance().psiElementNavigationTarget(expression),
     )
 
-    fun getFormatString(): KtStringTemplateExpression? {
+    fun getFormatExpression(): KtExpression? {
         val callExpression = PsiTreeUtil.getParentOfType(expression, KtCallExpression::class.java) ?: return null
         // Normalmente en KotlinPoet (addCode, addStatement), el primer argumento es el formato
         val firstArg = callExpression.valueArguments.firstOrNull()?.getArgumentExpression() ?: return null
-        // safe cast to prevent exceptions
-        return firstArg as? KtStringTemplateExpression
+        return firstArg
     }
 }

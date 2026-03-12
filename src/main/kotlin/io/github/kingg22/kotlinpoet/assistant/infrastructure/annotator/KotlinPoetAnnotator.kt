@@ -15,7 +15,7 @@ import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatProblem
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatValidatorRegistry
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemSeverity
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.KEY_IS_KOTLIN_POET
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.toTextRange
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.toTextRanges
 import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.kotlin.psi.KtCallExpression
 
@@ -49,10 +49,13 @@ class KotlinPoetAnnotator(
             problems.forEach { it.renderProblem(element, holder) }
             if (problems.isEmpty()) {
                 boundContext.forEach { (placeholder) ->
-                    holder.newSilentAnnotation(HighlightSeverity.INFORMATION)
-                        .textAttributes(DefaultLanguageHighlighterColors.HIGHLIGHTED_REFERENCE)
-                        .range(placeholder.textRange.toTextRange())
-                        .create()
+                    placeholder.span.toTextRanges().forEach { range ->
+                        holder
+                            .newSilentAnnotation(HighlightSeverity.INFORMATION)
+                            .textAttributes(DefaultLanguageHighlighterColors.HIGHLIGHTED_REFERENCE)
+                            .range(range)
+                            .create()
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -65,22 +68,25 @@ class KotlinPoetAnnotator(
     /** Helper para renderizar reportes */
     @VisibleForTesting
     fun FormatProblem.renderProblem(element: PsiElement, holder: AnnotationHolder) {
-        val textRange = target.toTextRange(element)
+        val textRanges = target.toTextRanges(element)
+        if (textRanges.isEmpty()) return
 
-        // Validación de seguridad para evitar "Range must be inside element"
-        // Solo dibujamos si el rango calculado es válido y tiene sentido
-        if (textRange.endOffset > element.containingFile.textLength) {
-            logger.warn("Text range out of bounds: $textRange for element: $element, problem: $this")
-            return
+        textRanges.forEach { textRange ->
+            // Validación de seguridad para evitar "Range must be inside element"
+            // Solo dibujamos si el rango calculado es válido y tiene sentido
+            if (textRange.endOffset > element.containingFile.textLength) {
+                logger.warn("Text range out of bounds: $textRange for element: $element, problem: $this")
+                return@forEach
+            }
+
+            val builder = when (severity) {
+                ProblemSeverity.INFORMATION -> holder.newAnnotation(HighlightSeverity.INFORMATION, message)
+                ProblemSeverity.WARNING -> holder.newAnnotation(HighlightSeverity.WARNING, message)
+                ProblemSeverity.ERROR -> holder.newAnnotation(HighlightSeverity.ERROR, message)
+            }
+
+            // TODO add domain builder problem to provide more info like quick fix, fix, text attributes, etc
+            builder.range(textRange).create()
         }
-
-        val builder = when (severity) {
-            ProblemSeverity.INFORMATION -> holder.newAnnotation(HighlightSeverity.INFORMATION, message)
-            ProblemSeverity.WARNING -> holder.newAnnotation(HighlightSeverity.WARNING, message)
-            ProblemSeverity.ERROR -> holder.newAnnotation(HighlightSeverity.ERROR, message)
-        }
-
-        // TODO add domain builder problem to provide more info like quick fix, fix, text attributes, etc
-        builder.range(textRange).create()
     }
 }

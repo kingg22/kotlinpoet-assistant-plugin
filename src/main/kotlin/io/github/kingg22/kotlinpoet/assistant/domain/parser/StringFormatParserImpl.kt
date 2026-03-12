@@ -6,6 +6,7 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.FormatKind
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding
+import io.github.kingg22.kotlinpoet.assistant.domain.text.FormatText
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatProblem
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemSeverity
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemTarget
@@ -17,7 +18,8 @@ class StringFormatParserImpl : StringFormatParser {
     }
 
     /** Actual parser state */
-    private class ParseState(val rawString: String) {
+    private class ParseState(val text: FormatText) {
+        val rawString: String = text.asString()
         val placeholders = mutableListOf<PlaceholderSpec>()
         val controlSymbols = mutableListOf<ControlSymbol>()
         val errors = mutableListOf<FormatProblem>()
@@ -34,10 +36,14 @@ class StringFormatParserImpl : StringFormatParser {
         fun peek(offset: Int = 1): Char? = if (cursor + offset < rawString.length) rawString[cursor + offset] else null
     }
 
-    override fun parse(rawString: String, isNamedStyle: Boolean): FormatStringModel {
-        val state = ParseState(rawString)
+    override fun parse(text: FormatText, isNamedStyle: Boolean): FormatStringModel {
+        val state = ParseState(text)
 
         while (!state.isAtEnd()) {
+            if (state.text.isIndexInDynamic(state.cursor)) {
+                state.cursor++
+                continue
+            }
             // 1. Analizar si es un inicio de token (%)
             if (state.current() == '%') {
                 parsePercentToken(state)
@@ -47,7 +53,7 @@ class StringFormatParserImpl : StringFormatParser {
             }
         }
 
-        return buildModel(rawString, state, isNamedStyle)
+        return buildModel(text, state, isNamedStyle)
     }
 
     /**
@@ -120,7 +126,7 @@ class StringFormatParserImpl : StringFormatParser {
 
         if (symbolType != null) {
             val end = start + 2
-            state.controlSymbols.add(ControlSymbol(symbolType, start until end))
+            state.controlSymbols.add(ControlSymbol(symbolType, state.text.span(start, end)))
             state.cursor = end
             return true
         }
@@ -199,15 +205,17 @@ class StringFormatParserImpl : StringFormatParser {
             // Aquí optamos por solo reportar el error en `errors` y NO agregarlo a `placeholders`
             // para evitar crash en lógica posterior que asuma Kinds válidos.
         } else {
-            state.placeholders.add(PlaceholderSpec(kind, binding, start until end))
+            state.placeholders.add(PlaceholderSpec(kind, binding, state.text.span(start, end)))
         }
     }
 
     private fun reportError(state: ParseState, start: Int, end: Int, @Nls msg: String) {
-        state.errors.add(FormatProblem(ProblemSeverity.ERROR, msg, ProblemTarget.TextRange(start until end)))
+        state.errors.add(
+            FormatProblem(ProblemSeverity.ERROR, msg, ProblemTarget.TextSpanTarget(state.text.span(start, end))),
+        )
     }
 
-    private fun buildModel(rawText: String, state: ParseState, forceNamed: Boolean): FormatStringModel {
+    private fun buildModel(text: FormatText, state: ParseState, forceNamed: Boolean): FormatStringModel {
         // Determinar estilo final
         val style = when {
             state.errors.isNotEmpty() && state.placeholders.isEmpty() -> FormatStringModel.FormatStyle.None
@@ -224,11 +232,13 @@ class StringFormatParserImpl : StringFormatParser {
             (forceNamed && style != FormatStringModel.FormatStyle.Named)
         ) {
             // Nota: El rango es 0 para indicar error global del string, o podríamos calcular el rango del primer conflicto
-            reportError(state, 0, rawText.length, KPoetAssistantBundle.getMessage("argument.format.invalid.mix"))
+            if (!text.isEmpty()) {
+                reportError(state, 0, text.length, KPoetAssistantBundle.getMessage("argument.format.invalid.mix"))
+            }
         }
 
         return FormatStringModel(
-            rawText = rawText,
+            text = text,
             style = style,
             placeholders = state.placeholders,
             controlSymbols = state.controlSymbols,

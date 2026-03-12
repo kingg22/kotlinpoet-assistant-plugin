@@ -97,7 +97,7 @@ class KotlinPoetCompletionContributor :
                 val startOffset = hostString.textRange.startOffset
                 val currentText = document.getText(TextRange(startOffset, offset))
 
-                if (currentText.endsWith("%")) {
+                if (currentText.endsWith("%") && !currentText.endsWith("%%")) {
                     result.withPrefixMatcher("%").addAllElements(placeholderKind)
                 }
             } catch (e: Exception) {
@@ -107,10 +107,10 @@ class KotlinPoetCompletionContributor :
             }
         }
 
-        private fun createPlaceholder(char: Char, type: String): LookupElementBuilder =
-            LookupElementBuilder.create("%$char")
-                .withPresentableText("%$char")
-                .withTypeText(type)
-                .withBoldness(true)
+        private fun createPlaceholder(char: Char, type: String): LookupElementBuilder = LookupElementBuilder
+            .create("%$char")
+            .withPresentableText("%$char")
+            .withTypeText(type)
+            .withBoldness(true)
     }
 }

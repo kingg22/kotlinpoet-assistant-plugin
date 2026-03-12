@@ -13,7 +13,6 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ExceptionUtil
-import io.github.kingg22.kotlinpoet.assistant.adapters.psi.PsiTextRangeHelper
 import io.github.kingg22.kotlinpoet.assistant.domain.binding.BindingEngineResolver
 import io.github.kingg22.kotlinpoet.assistant.domain.extractor.FormatContextExtractorRegistry
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
@@ -101,9 +100,17 @@ class KotlinPoetReferenceProvider(
                     else -> continue
                 } ?: continue
 
-                // IMPORTANTE:
-                // placeholder.textRange es RELATIVO al contenido del string
-                val relativeRange = placeholder.textRange.toTextRange(PsiTextRangeHelper.getTextStartOffset(element))
+                val elementRange = element.textRange
+                val matchingRanges = placeholder.span.ranges.filter { r ->
+                    r.first >= elementRange.startOffset && r.last < elementRange.endOffset
+                }
+                if (matchingRanges.size != 1) {
+                    logger.debug("Skipping placeholder outside current string: $placeholder")
+                    continue
+                }
+
+                val absoluteRange = matchingRanges.single()
+                val relativeRange = absoluteRange.toTextRange().shiftLeft(elementRange.startOffset)
 
                 // Validación estricta del rango
                 if (relativeRange.startOffset < 0 || relativeRange.endOffset > element.textLength) {
@@ -138,8 +145,8 @@ class KotlinPoetReferenceProvider(
      */
     private fun resolvePsiTarget(psiArgs: List<ValueArgument>, value: ArgumentValue): KtExpression? =
         if (value.isRelative || value.isPositional) {
-            val index = value.index!!
-            if (index in psiArgs.indices) {
+            val index = value.index
+            if (index != null && index in psiArgs.indices) {
                 psiArgs[index].getArgumentExpression()
             } else {
                 null

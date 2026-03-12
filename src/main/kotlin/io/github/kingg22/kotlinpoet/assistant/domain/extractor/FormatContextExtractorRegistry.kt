@@ -1,11 +1,13 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.extractor
 
+import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParserImpl
 import org.jetbrains.kotlin.psi.KtCallExpression
 
 object FormatContextExtractorRegistry {
+    private val parser = StringFormatParserImpl()
     private val extractors: List<FormatContextExtractor> = listOf(
-        NamedFormatExtractor(),
-        VarargFormatExtractor(),
+        NamedFormatExtractor(parser),
+        VarargFormatExtractor(parser),
     )
 
     @JvmStatic

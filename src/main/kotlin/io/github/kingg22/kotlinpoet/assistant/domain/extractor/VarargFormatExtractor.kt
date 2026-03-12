@@ -1,20 +1,16 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.extractor
 
-import io.github.kingg22.kotlinpoet.assistant.adapters.psi.PsiTextRangeHelper
 import io.github.kingg22.kotlinpoet.assistant.adapters.types.ArgumentTypeMapper
 import io.github.kingg22.kotlinpoet.assistant.adapters.types.isKotlinPoetBuilder
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
 import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParser
-import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParserImpl
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
 import org.jetbrains.kotlin.psi.KtCallExpression
 
-class VarargFormatExtractor(private val parser: StringFormatParser = StringFormatParserImpl()) :
-    FormatContextExtractor {
-
+class VarargFormatExtractor(private val parser: StringFormatParser) : FormatContextExtractor {
     override fun extract(call: KtCallExpression, boundOffsetOfCall: Boolean): KotlinPoetCallContext? = analyze(call) {
         val resolvedCall: KaCallableMemberCall<*, *> =
             call.resolveToCall()?.singleCallOrNull() ?: return@analyze null
@@ -36,15 +32,10 @@ class VarargFormatExtractor(private val parser: StringFormatParser = StringForma
         val formatArgExpr = args.firstOrNull()?.getArgumentExpression() ?: return@analyze null
 
         // Intentamos resolver el valor constante del string
-        val formatString = resolveStringOrNull(formatArgExpr) ?: return@analyze null
+        val formatText = resolveFormatTextOrNull(formatArgExpr) ?: return@analyze null
 
-        // 4. Parsear el modelo y recalcular los offsets relativos
-        val formatModel = parser.parse(formatString).let { model ->
-            if (!boundOffsetOfCall) return@let model
-            // Calculamos el offset base
-            val baseOffset = PsiTextRangeHelper.getContentStartOffset(formatArgExpr)
-            model.withBaseOffset(baseOffset)
-        }
+        // 4. Parsear el modelo (spans absolutos)
+        val formatModel = parser.parse(formatText)
 
         // 5. Extraer argumentos VarArg
         // Saltamos el primero (que es el format string)

@@ -1,6 +1,8 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.model
 
-data class PlaceholderSpec(val kind: FormatKind, val binding: PlaceholderBinding, val textRange: IntRange) {
+import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
+
+data class PlaceholderSpec(val kind: FormatKind, val binding: PlaceholderBinding, val span: TextSpan) {
     @JvmInline
     value class FormatKind private constructor(val value: Char) {
         companion object {

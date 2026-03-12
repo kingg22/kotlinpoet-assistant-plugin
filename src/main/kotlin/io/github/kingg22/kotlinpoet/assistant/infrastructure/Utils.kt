@@ -3,6 +3,7 @@ package io.github.kingg22.kotlinpoet.assistant.infrastructure
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import io.github.kingg22.kotlinpoet.assistant.Constants
+import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemTarget
 import org.jetbrains.kotlin.psi.KtCallExpression
 
@@ -21,14 +22,12 @@ fun IntRange.toTextRange(delta: Int = 0): TextRange = if (delta == 0) {
     TextRange(first + delta, last + delta + 1)
 }
 
-fun ProblemTarget.toTextRange(element: PsiElement): TextRange = when (this) {
-    ProblemTarget.Call -> element.textRange
+fun TextSpan.toTextRanges(): List<TextRange> = ranges.map { it.toTextRange() }
 
-    // Rango de toda la llamada
-    is ProblemTarget.TextRange,
-    // Si tienes un target para Placeholders ya bound:
-    is ProblemTarget.Placeholder,
-    -> range.toTextRange()
+fun ProblemTarget.toTextRanges(element: PsiElement): List<TextRange> = when (this) {
+    ProblemTarget.Call -> listOf(element.textRange)
+    is ProblemTarget.TextSpanTarget -> span.toTextRanges()
+    is ProblemTarget.Placeholder -> span.toTextRanges()
 }
 
 fun KtCallExpression.looksLikeKotlinPoetCall(): Boolean {

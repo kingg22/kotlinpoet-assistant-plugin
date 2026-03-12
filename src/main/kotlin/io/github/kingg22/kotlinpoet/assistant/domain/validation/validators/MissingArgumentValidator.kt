@@ -23,7 +23,7 @@ class MissingArgumentValidator : FormatValidator {
                     "argument.format.missing",
                     boundPlaceholder.placeholder.kind.value,
                 ),
-                target = ProblemTarget.Placeholder(boundPlaceholder.placeholder.textRange),
+                target = ProblemTarget.Placeholder(boundPlaceholder.placeholder.span),
             )
         }
     }

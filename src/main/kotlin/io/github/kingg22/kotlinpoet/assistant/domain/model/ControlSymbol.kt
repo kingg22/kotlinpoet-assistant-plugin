@@ -1,7 +1,9 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.model
 
+import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
+
 /** Representa símbolos de control de KotlinPoet que no llevan argumentos. */
-data class ControlSymbol(val type: SymbolType, val range: IntRange) {
+data class ControlSymbol(val type: SymbolType, val span: TextSpan) {
     @JvmInline
     value class SymbolType private constructor(val value: String) {
         companion object {

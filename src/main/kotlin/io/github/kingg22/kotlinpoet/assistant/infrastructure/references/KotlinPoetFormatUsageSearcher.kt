@@ -9,6 +9,7 @@ import com.intellij.model.psi.PsiSymbolReferenceHints
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
+import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
@@ -18,23 +19,28 @@ class KotlinPoetFormatUsageSearcher : UsageSearcher {
     override fun collectImmediateResults(parameters: UsageSearchParameters): Collection<Usage> {
         val target = parameters.target
         if (target is KotlinPoetArgumentSymbol) {
-            val formatHost = target.getFormatString() ?: return emptyList()
+            val formatExpr = target.getFormatExpression() ?: return emptyList()
             val argumentExpression = target.expression
 
             // Reutilizamos la lógica del provider para encontrar las referencias
-            return getFormatUsages(target, formatHost, argumentExpression)
+            return getFormatUsages(target, formatExpr, argumentExpression)
         }
         return emptyList()
     }
 
     private fun getFormatUsages(
         symbol: KotlinPoetArgumentSymbol,
-        formatHost: KtStringTemplateExpression,
+        formatExpr: KtExpression,
         arg: KtExpression,
     ): List<Usage> {
         if (!this::provider.isInitialized) provider = KotlinPoetReferenceProvider()
-        // 1. Obtenemos todas las referencias que el provider genera para ese String
-        val allRefs = provider.getReferences(formatHost, PsiSymbolReferenceHints.offsetHint(1))
+        // 1. Obtenemos todas las referencias que el provider genera para todos los string templates
+        val hosts = PsiTreeUtil.findChildrenOfType(formatExpr, KtStringTemplateExpression::class.java)
+        if (hosts.isEmpty()) return listOf(PsiElementUsage(arg))
+
+        val allRefs = hosts.flatMap { host ->
+            provider.getReferences(host, PsiSymbolReferenceHints.offsetHint(1))
+        }
 
         // Añadimos la definición del argumento mismo a la lista de usos
         return allRefs

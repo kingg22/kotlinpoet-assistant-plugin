@@ -1,12 +1,10 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.extractor
 
-import io.github.kingg22.kotlinpoet.assistant.adapters.psi.PsiTextRangeHelper
 import io.github.kingg22.kotlinpoet.assistant.adapters.types.ArgumentTypeMapper
 import io.github.kingg22.kotlinpoet.assistant.adapters.types.isKotlinPoetBuilder
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
 import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParser
-import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParserImpl
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
@@ -14,7 +12,7 @@ import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 
-class NamedFormatExtractor(private val parser: StringFormatParser = StringFormatParserImpl()) : FormatContextExtractor {
+class NamedFormatExtractor(private val parser: StringFormatParser) : FormatContextExtractor {
     override fun extract(call: KtCallExpression, boundOffsetOfCall: Boolean): KotlinPoetCallContext? {
         // Filtro rápido por nombre antes de entrar al análisis pesado
         if (call.calleeExpression?.text != "addNamed") return null
@@ -32,13 +30,9 @@ class NamedFormatExtractor(private val parser: StringFormatParser = StringFormat
 
             // 1. Extraer Formato
             val formatArgExpr = args[0].getArgumentExpression() ?: return@analyze null
-            val formatString = resolveStringOrNull(formatArgExpr) ?: return@analyze null
+            val formatText = resolveFormatTextOrNull(formatArgExpr) ?: return@analyze null
 
-            val formatModel = parser.parse(formatString, true).let { model ->
-                if (!boundOffsetOfCall) return@let model
-                val baseOffset = PsiTextRangeHelper.getContentStartOffset(formatArgExpr)
-                model.withBaseOffset(baseOffset)
-            }
+            val formatModel = parser.parse(formatText, true)
 
             // 2. Extraer Mapa
             val mapArgExpr = args[1].getArgumentExpression()
