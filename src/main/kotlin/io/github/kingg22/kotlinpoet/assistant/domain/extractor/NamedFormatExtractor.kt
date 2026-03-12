@@ -5,11 +5,14 @@ import io.github.kingg22.kotlinpoet.assistant.adapters.types.isKotlinPoetBuilder
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
 import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParser
+import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
+import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 
 class NamedFormatExtractor(private val parser: StringFormatParser) : FormatContextExtractor {
@@ -37,6 +40,7 @@ class NamedFormatExtractor(private val parser: StringFormatParser) : FormatConte
             // 2. Extraer Mapa
             val mapArgExpr = args[1].getArgumentExpression()
             val mapEntries = mutableMapOf<String, ArgumentValue>()
+            var isComplete: Boolean
 
             // Caso A: El mapa se crea inline -> mapOf("a" to 1)
             if (mapArgExpr is KtCallExpression) {
@@ -46,42 +50,54 @@ class NamedFormatExtractor(private val parser: StringFormatParser) : FormatConte
                 // Una implementación estricta verificaría el resolvedCall del mapa.
 
                 val mapArgs: List<KtValueArgument> = mapArgExpr.valueArguments
-                for (entryArg in mapArgs) {
+                isComplete = true
+
+                mapArgs.forEach { entryArg ->
                     val entryExpr = entryArg.getArgumentExpression()
 
-                    // En Kotlin, "key to value" es una llamada infix a la función 'to'
-                    // PSI structure: KtBinaryExpression (si es infix) o KtCallExpression (si es .to())
-                    // Simplificaremos buscando llamadas a 'to'.
-
-                    // Nota: Análisis profundo de 'to' requiere recorrer el PSI del argumento
-                    // Para este MVP, usamos una heurística o resolvemos la llamada 'to'.
-
-                    // Estrategia Robustez: Usar Analysis API para evaluar la Key constante.
-                    if (entryExpr is KtBinaryExpression) {
-                        // Lado Izquierdo (Key)
-                        val keyExpr = entryExpr.left
-                        val keyVal = keyExpr?.evaluate()?.value as? String
-
-                        // Lado Derecho (Value)
-                        val valueExpr = entryExpr.right
-                        val valueType = ArgumentTypeMapper.map(valueExpr?.expressionType)
-
-                        if (keyVal != null) {
-                            mapEntries[keyVal] = ArgumentValue.named(keyVal, valueType)
-                        }
+                    val (keyVal, valueExpr) = extractMapEntry(entryExpr) ?: run {
+                        isComplete = false
+                        return@forEach
                     }
+
+                    val valueType = with(ArgumentTypeMapper) { map(valueExpr?.expressionType) }
+                    val span = valueExpr?.textRange?.let { TextSpan.of(it.startOffset..<it.endOffset) }
+                    mapEntries[keyVal] = ArgumentValue.named(keyVal, valueType, span)
                 }
             } else {
                 // Caso B: Es una referencia a variable -> val myMap = ...
                 // Análisis de flujo de datos (DFA) es complejo.
                 // Retornamos un mapa vacío o parcial, el validador reportará "Missing argument" si no encuentra match.
                 // Opcional: Podríamos retornar un ArgumentSource.UnknownMap para suprimir errores falsos positivos.
+                isComplete = false
             }
 
             KotlinPoetCallContext(
                 format = formatModel,
-                arguments = ArgumentSource.NamedMap(mapEntries),
+                arguments = ArgumentSource.NamedMap(mapEntries, isComplete),
             )
+        }
+    }
+
+    private fun KaSession.extractMapEntry(entryExpr: KtExpression?): Pair<String, KtExpression?>? {
+        // En Kotlin, "key to value" es una llamada infix a la función 'to'
+        // PSI structure: KtBinaryExpression (si es infix) o KtCallExpression (si es .to())
+        return when (entryExpr) {
+            is KtBinaryExpression -> {
+                val keyExpr = entryExpr.left
+                val keyVal = keyExpr?.evaluate()?.value as? String ?: return null
+                keyVal to entryExpr.right
+            }
+
+            is KtCallExpression -> {
+                if (entryExpr.calleeExpression?.text != "to") return null
+                val keyExpr = entryExpr.valueArguments.getOrNull(0)?.getArgumentExpression()
+                val keyVal = keyExpr?.evaluate()?.value as? String ?: return null
+                val valueExpr = entryExpr.valueArguments.getOrNull(1)?.getArgumentExpression()
+                keyVal to valueExpr
+            }
+
+            else -> null
         }
     }
 }

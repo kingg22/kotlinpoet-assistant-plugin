@@ -5,6 +5,7 @@ import io.github.kingg22.kotlinpoet.assistant.adapters.types.isKotlinPoetBuilder
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
 import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParser
+import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
@@ -42,10 +43,11 @@ class VarargFormatExtractor(private val parser: StringFormatParser) : FormatCont
         val argumentValues = args.drop(1).mapIndexed { index, valueArg ->
             val expr = valueArg.getArgumentExpression()
             val kaType = expr?.expressionType
-            val argType = ArgumentTypeMapper.map(kaType)
+            val argType = with(ArgumentTypeMapper) { map(kaType) }
+            val span = expr?.textRange?.let { TextSpan.of(it.startOffset..<it.endOffset) }
 
             // Index 1-based para coincidir con la lógica de PositionalFormat
-            ArgumentValue.positionalOrRelative(index + 1, argType)
+            ArgumentValue.positionalOrRelative(index + 1, argType, span)
         }
 
         KotlinPoetCallContext(
