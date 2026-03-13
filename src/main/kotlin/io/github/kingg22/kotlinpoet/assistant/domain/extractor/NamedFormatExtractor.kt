@@ -1,15 +1,12 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.extractor
 
 import io.github.kingg22.kotlinpoet.assistant.adapters.types.ArgumentTypeMapper
-import io.github.kingg22.kotlinpoet.assistant.adapters.types.isKotlinPoetBuilder
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
 import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParser
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
-import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
@@ -17,16 +14,10 @@ import org.jetbrains.kotlin.psi.KtValueArgument
 
 class NamedFormatExtractor(private val parser: StringFormatParser) : FormatContextExtractor {
     override fun extract(call: KtCallExpression, boundOffsetOfCall: Boolean): KotlinPoetCallContext? {
-        // Filtro rápido por nombre antes de entrar al análisis pesado
-        if (call.calleeExpression?.text != "addNamed") return null
+        val target = KotlinPoetCallTargetResolver.resolve(call) ?: return null
+        if (target.methodName != "addNamed") return null
 
         return analyze(call) {
-            val resolvedCall: KaCallableMemberCall<*, *> =
-                call.resolveToCall()?.singleCallOrNull() ?: return@analyze null
-            val receiverType = resolvedCall.partiallyAppliedSymbol.dispatchReceiver?.type
-
-            if (receiverType == null || !receiverType.isKotlinPoetBuilder()) return@analyze null
-
             val args: List<KtValueArgument> = call.valueArguments
             // addNamed(format, map) -> requiere al menos 2 argumentos
             if (args.size < 2) return@analyze null
@@ -75,6 +66,11 @@ class NamedFormatExtractor(private val parser: StringFormatParser) : FormatConte
             KotlinPoetCallContext(
                 format = formatModel,
                 arguments = ArgumentSource.NamedMap(mapEntries, isComplete),
+                renderHint = RenderHint(
+                    methodName = target.methodName,
+                    receiverFqName = target.receiverFqName,
+                    isDelegated = target.isDelegated,
+                ),
             )
         }
     }

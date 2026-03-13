@@ -47,7 +47,11 @@ private val primitiveTypes = setOf(
 /** Checks if a given type matches any of the known KotlinPoet builders that delegate to CodeBlock. */
 fun KaType.isKotlinPoetBuilder(): Boolean {
     // Check hierarchy or exact match
-    if (this is KaClassType && this.classId in Constants.ClassIds.ALL) return true
+    if (this is KaClassType) {
+        if (this.classId in Constants.ClassIds.ALL) return true
+        val fqName = this.classId.asSingleFqName().asString()
+        if (fqName.startsWith("com.squareup.kotlinpoet.") && fqName.endsWith(".Builder")) return true
+    }
 
     // TODO: Considerar verificar supertipos si KotlinPoet usa herencia para estos builders
     return false

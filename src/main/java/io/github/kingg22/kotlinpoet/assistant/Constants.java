@@ -25,20 +25,20 @@ public final class Constants {
         public static final ClassId CODE_BLOCK = new ClassId(KOTLINPOET_PACKAGE, Name.identifier("CodeBlock"));
 
         public static final ClassId CODE_BLOCK_COMPANION =
-                new ClassId(KOTLINPOET_PACKAGE, Name.identifier("CodeBlock.Companion"));
+                new ClassId(KOTLINPOET_PACKAGE, new FqName("CodeBlock.Companion"), false);
 
         public static final ClassId CODE_BLOCK_BUILDER =
-                new ClassId(KOTLINPOET_PACKAGE, Name.identifier("CodeBlock.Builder"));
+                new ClassId(KOTLINPOET_PACKAGE, new FqName("CodeBlock.Builder"), false);
 
         public static final ClassId FUNSPEC_BUILDER =
-                new ClassId(KOTLINPOET_PACKAGE, Name.identifier("FunSpec.Builder"));
+                new ClassId(KOTLINPOET_PACKAGE, new FqName("FunSpec.Builder"), false);
 
         public static final ClassId TYPE_SPEC_BUILDER =
-                new ClassId(KOTLINPOET_PACKAGE, Name.identifier("TypeSpec.Builder"));
+                new ClassId(KOTLINPOET_PACKAGE, new FqName("TypeSpec.Builder"), false);
         public static final ClassId PROPERTYSPEC_BUILDER =
-                new ClassId(KOTLINPOET_PACKAGE, Name.identifier("PropertySpec.Builder"));
+                new ClassId(KOTLINPOET_PACKAGE, new FqName("PropertySpec.Builder"), false);
         public static final ClassId FILESPEC_BUILDER =
-                new ClassId(KOTLINPOET_PACKAGE, Name.identifier("FileSpec.Builder"));
+                new ClassId(KOTLINPOET_PACKAGE, new FqName("FileSpec.Builder"), false);
 
         public static @NotNull ClassId[] ALL = {
             CODE_BLOCK,
