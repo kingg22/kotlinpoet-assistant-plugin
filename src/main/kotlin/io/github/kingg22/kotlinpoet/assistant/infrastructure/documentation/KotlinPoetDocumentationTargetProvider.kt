@@ -8,9 +8,9 @@ import com.intellij.platform.backend.documentation.DocumentationTargetProvider
 import com.intellij.platform.backend.presentation.TargetPresentation
 import com.intellij.psi.PsiFile
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
-import io.github.kingg22.kotlinpoet.assistant.domain.extractor.FormatContextExtractorRegistry
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
@@ -25,14 +25,14 @@ class KotlinPoetDocumentationTargetProvider : DocumentationTargetProvider {
         val template = element.getParentOfType<KtStringTemplateExpression>(false) ?: return emptyList()
         val call = template.getParentOfType<KtCallExpression>(false) ?: return emptyList()
 
-        val context = FormatContextExtractorRegistry.extract(call) ?: return emptyList()
+        val format = getCachedAnalysis(call)?.format ?: return emptyList()
 
-        val placeholder = context.format.placeholders.firstOrNull { it.span.contains(offset) }
+        val placeholder = format.placeholders.firstOrNull { it.span.contains(offset) }
         if (placeholder != null) {
             return listOf(KotlinPoetDocumentationTarget(DocToken.Placeholder(placeholder.kind)))
         }
 
-        val control = context.format.controlSymbols.firstOrNull { it.span.contains(offset) }
+        val control = format.controlSymbols.firstOrNull { it.span.contains(offset) }
         if (control != null) {
             return listOf(KotlinPoetDocumentationTarget(DocToken.Control(control.type)))
         }

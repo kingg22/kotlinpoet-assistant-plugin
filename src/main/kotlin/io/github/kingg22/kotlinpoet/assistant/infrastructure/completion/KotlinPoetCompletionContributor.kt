@@ -17,7 +17,7 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ExceptionUtil
 import com.intellij.util.ProcessingContext
-import io.github.kingg22.kotlinpoet.assistant.application.usecase.isKotlinPoetCall
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.looksLikeKotlinPoetCall
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
@@ -77,14 +77,12 @@ class KotlinPoetCompletionContributor :
                     return
                 }
 
-                val isKotlinPoetCall = if (DumbService.isDumb(parameters.position.project)) {
-                    call.looksLikeKotlinPoetCall()
-                } else {
-                    call.isKotlinPoetCall()
-                }
+                val kotlinPoetCallAnalysis = getCachedAnalysis(call)
 
                 // Si no es KotlinPoet, salimos
-                if (!isKotlinPoetCall) {
+                if (kotlinPoetCallAnalysis == null ||
+                    (DumbService.isDumb(call.project) && !call.looksLikeKotlinPoetCall())
+                ) {
                     logger.trace("Skipping completion inside non-KotlinPoet call: ${call.text}")
                     return
                 }

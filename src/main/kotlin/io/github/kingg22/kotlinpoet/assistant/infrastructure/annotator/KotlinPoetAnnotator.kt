@@ -5,25 +5,22 @@ import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.thisLogger
-import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
+import com.intellij.openapi.editor.colors.TextAttributesKey
+import com.intellij.openapi.project.DumbAware
+import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.util.ExceptionUtil
-import io.github.kingg22.kotlinpoet.assistant.domain.binding.BindingEngineResolver
-import io.github.kingg22.kotlinpoet.assistant.domain.extractor.FormatContextExtractorRegistry
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.BoundContext
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatProblem
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatValidatorRegistry
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemSeverity
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.KEY_IS_KOTLIN_POET
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.putCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.toTextRanges
 import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.kotlin.psi.KtCallExpression
 
-class KotlinPoetAnnotator(
-    private val bindingResolver: BindingEngineResolver = BindingEngineResolver,
-    private val extractorRegistry: FormatContextExtractorRegistry = FormatContextExtractorRegistry,
-    private val validatorRegistry: FormatValidatorRegistry = FormatValidatorRegistry,
-) : Annotator {
+class KotlinPoetAnnotator :
+    Annotator,
+    DumbAware {
     private val logger = thisLogger()
 
     override fun annotate(element: PsiElement, holder: AnnotationHolder) {
@@ -31,31 +28,35 @@ class KotlinPoetAnnotator(
 
         try {
             // 1. Extraemos el contexto (Modelos de dominio)
-            val callContext = extractorRegistry.extract(element) ?: return
-
-            element.putUserData(KEY_IS_KOTLIN_POET, true)
+            var kotlinPoetAnalysis = getCachedAnalysis(element) ?: return
 
             // 2. Renderizar errores de parseo (ej: mezcla inválida, sintaxis rota)
-            if (callContext.format.errors.isNotEmpty()) {
-                callContext.format.errors.forEach { it.renderProblem(element, holder) }
+            if (kotlinPoetAnalysis.haveFormatProblems) {
+                kotlinPoetAnalysis.format.errors.forEach { it.renderProblem(element, holder) }
                 return // Si el formato está roto, no intentamos validar argumentos
             }
 
             // 3. Lógica de Binding y Validación
-            val bindingEngine = bindingResolver.forStyle(callContext.format.style)
-            val boundContext = bindingEngine.bind(callContext.format, callContext.arguments)
-            val problems = validatorRegistry.validate(BoundContext(boundContext, callContext.arguments))
+            kotlinPoetAnalysis = kotlinPoetAnalysis.validate()
+            putCachedAnalysis(element, kotlinPoetAnalysis)
+            val boundContext = kotlinPoetAnalysis.bounds
+            val problems = kotlinPoetAnalysis.problems
 
             problems.forEach { it.renderProblem(element, holder) }
-            if (problems.isEmpty() || problems.all { it.severity == ProblemSeverity.INFORMATION }) {
-                boundContext.forEach { (placeholder) ->
-                    placeholder.span.toTextRanges().forEach { range ->
-                        holder
-                            .newSilentAnnotation(HighlightSeverity.INFORMATION)
-                            .textAttributes(DefaultLanguageHighlighterColors.HIGHLIGHTED_REFERENCE)
-                            .range(range)
-                            .create()
-                    }
+            kotlinPoetAnalysis.controlSymbols.forEach { controlSymbol ->
+                controlSymbol.span.toTextRanges().forEach { range ->
+                    holder.highlight(
+                        range,
+                        KotlinPoetHighlightKeys.CONTROL_SYMBOL,
+                    )
+                }
+            }
+            boundContext.forEach { (placeholder, arg) ->
+                placeholder.span.toTextRanges().forEach { range ->
+                    holder.highlight(range, KotlinPoetHighlightKeys.PLACEHOLDER)
+                }
+                arg?.span?.toTextRanges()?.forEach { range ->
+                    holder.highlight(range, KotlinPoetHighlightKeys.ARGUMENT)
                 }
             }
         } catch (e: Exception) {
@@ -88,5 +89,16 @@ class KotlinPoetAnnotator(
             // TODO add domain builder problem to provide more info like quick fix, fix, text attributes, etc
             builder.range(textRange).create()
         }
+    }
+
+    fun AnnotationHolder.highlight(
+        range: TextRange,
+        key: TextAttributesKey,
+        severity: HighlightSeverity = HighlightSeverity.INFORMATION,
+    ) {
+        newSilentAnnotation(severity)
+            .textAttributes(key)
+            .range(range)
+            .create()
     }
 }

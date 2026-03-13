@@ -6,7 +6,7 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
 import com.intellij.psi.util.PsiTreeUtil
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.KEY_IS_KOTLIN_POET
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.looksLikeKotlinPoetCall
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtFile
@@ -31,9 +31,9 @@ class KotlinPoetTypedHandler : TypedHandlerDelegate() {
             KtCallExpression::class.java,
         ) ?: return Result.CONTINUE
 
-        val kotlinPoetCallFlag = call.getUserData(KEY_IS_KOTLIN_POET)
-        if (kotlinPoetCallFlag != null && !kotlinPoetCallFlag) return Result.CONTINUE
-        if (kotlinPoetCallFlag == null && !call.looksLikeKotlinPoetCall()) return Result.CONTINUE
+        val kotlinPoetCallAnalysis = getCachedAnalysis(call)
+        if (kotlinPoetCallAnalysis != null) return Result.CONTINUE
+        if (!call.looksLikeKotlinPoetCall()) return Result.CONTINUE
 
         // Disparar popup de completion
         AutoPopupController.getInstance(project).scheduleAutoPopup(editor)
