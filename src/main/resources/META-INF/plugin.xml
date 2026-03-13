@@ -32,6 +32,9 @@
             order="first"
             implementation="io.github.kingg22.kotlinpoet.assistant.infrastructure.completion.KotlinPoetTypedHandler"/>
 
+        <platform.backend.documentation.targetProvider
+            implementation="io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation.KotlinPoetDocumentationTargetProvider"/>
+
         <searcher
             forClass="com.intellij.find.usages.api.UsageSearchParameters"
             implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.references.KotlinPoetFormatUsageSearcher"/>

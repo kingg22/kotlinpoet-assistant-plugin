@@ -17,6 +17,8 @@ data class TextSpan(val ranges: List<IntRange>) {
 
     operator fun plus(other: TextSpan): TextSpan = TextSpan(ranges + other.ranges)
 
+    operator fun contains(offset: Int): Boolean = ranges.any { offset in it }
+
     companion object {
         val Empty: TextSpan = TextSpan(emptyList())
 
