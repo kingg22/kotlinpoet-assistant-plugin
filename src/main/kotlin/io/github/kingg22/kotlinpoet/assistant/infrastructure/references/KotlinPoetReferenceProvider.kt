@@ -71,6 +71,8 @@ class KotlinPoetReferenceProvider : PsiSymbolReferenceProvider {
 
             val references = mutableListOf<PsiSymbolReference>()
             val args: List<KtValueArgument> = call.valueArguments
+            val offsetInElement = hints.offsetInElement
+            val hintedTarget = hints.target as? KotlinPoetArgumentSymbol
 
             for ((placeholder, argValue) in boundPlaceholders) {
                 val targetExpression: KtExpression = when {
@@ -106,6 +108,8 @@ class KotlinPoetReferenceProvider : PsiSymbolReferenceProvider {
                 }
 
                 val symbol = KotlinPoetArgumentSymbol(expression = targetExpression)
+                if (hintedTarget != null && symbol != hintedTarget) continue
+                if (offsetInElement >= 0 && !relativeRange.containsOffset(offsetInElement)) continue
 
                 references += KotlinPoetPlaceholderReference(element, relativeRange, symbol)
 
