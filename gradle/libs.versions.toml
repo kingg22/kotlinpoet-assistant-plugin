@@ -9,11 +9,11 @@ junit5 = "5.14.3"
 # https://github.com/JetBrains/kotlin/releases
 kotlin = "2.1.20"
 
+# https://github.com/square/kotlinpoet/releases
+kotlinpoet = "2.2.0"
+
 # https://github.com/pinterest/ktlint/releases
 ktlint-pinterest = "1.8.0"
-
-# https://github.com/mrmans0n/compose-rules/releases
-ktlint-compose = "0.5.6"
 
 # https://github.com/Kotlin/kotlinx-kover/releases
 kover = "0.9.7"
@@ -29,7 +29,7 @@ spotless = "8.3.0"
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
 junit5-bom = { group = "org.junit", name = "junit-bom", version.ref = "junit5" }
 
-ktlint-compose = { group = "io.nlopez.compose.rules", name = "ktlint", version.ref = "ktlint-compose" }
+kotlinpoet = { group = "com.squareup", name = "kotlinpoet", version.ref = "kotlinpoet" }
 
 [plugins]
 jetbrains-changelog = { id = "org.jetbrains.changelog", version.ref = "jetbrains-changelog" }
