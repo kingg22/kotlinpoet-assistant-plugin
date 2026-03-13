@@ -3,5 +3,5 @@ package io.github.kingg22.kotlinpoet.assistant.domain.extractor
 import org.jetbrains.kotlin.psi.KtCallExpression
 
 sealed interface FormatContextExtractor {
-    fun extract(call: KtCallExpression, boundOffsetOfCall: Boolean = false): KotlinPoetCallContext?
+    fun extract(call: KtCallExpression): KotlinPoetCallContext?
 }

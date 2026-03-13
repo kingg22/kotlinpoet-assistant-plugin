@@ -13,7 +13,7 @@ import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 
 class NamedFormatExtractor(private val parser: StringFormatParser) : FormatContextExtractor {
-    override fun extract(call: KtCallExpression, boundOffsetOfCall: Boolean): KotlinPoetCallContext? {
+    override fun extract(call: KtCallExpression): KotlinPoetCallContext? {
         val target = KotlinPoetCallTargetResolver.resolve(call) ?: return null
         if (target.methodName != "addNamed") return null
 

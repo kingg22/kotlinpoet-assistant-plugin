@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.psi.KtCallExpression
 
 class VarargFormatExtractor(private val parser: StringFormatParser) : FormatContextExtractor {
-    override fun extract(call: KtCallExpression, boundOffsetOfCall: Boolean): KotlinPoetCallContext? {
+    override fun extract(call: KtCallExpression): KotlinPoetCallContext? {
         val target = KotlinPoetCallTargetResolver.resolve(call)
         val methodName = target?.methodName ?: call.calleeExpression?.text.orEmpty()
         if (target == null && methodName !in FALLBACK_METHODS) return null
