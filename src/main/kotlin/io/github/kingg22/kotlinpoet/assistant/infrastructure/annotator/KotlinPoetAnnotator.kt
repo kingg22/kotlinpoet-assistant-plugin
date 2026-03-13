@@ -47,7 +47,7 @@ class KotlinPoetAnnotator(
             val problems = validatorRegistry.validate(BoundContext(boundContext, callContext.arguments))
 
             problems.forEach { it.renderProblem(element, holder) }
-            if (problems.isEmpty()) {
+            if (problems.isEmpty() || problems.all { it.severity == ProblemSeverity.INFORMATION }) {
                 boundContext.forEach { (placeholder) ->
                     placeholder.span.toTextRanges().forEach { range ->
                         holder
