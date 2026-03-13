@@ -53,7 +53,7 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
-    implementation(libs.kotlinpoet) {
+    testImplementation(libs.kotlinpoet) {
         exclude(group = "org.jetbrains.kotlin")
     }
 
