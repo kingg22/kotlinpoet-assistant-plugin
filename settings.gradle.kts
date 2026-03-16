@@ -2,6 +2,7 @@
 // Its primary purpose is to define the subprojects.
 // It is also used for some aspects of project-wide configuration, like managing plugins, dependencies, etc.
 // https://docs.gradle.org/current/userguide/settings_file_basics.html
+import org.jetbrains.intellij.platform.gradle.extensions.intellijPlatform
 
 pluginManagement {
     repositories {
@@ -16,7 +17,7 @@ pluginManagement {
 
 plugins {
     // https://github.com/JetBrains/intellij-platform-gradle-plugin/releases
-    id("org.jetbrains.intellij.platform.settings") version "2.13.0"
+    id("org.jetbrains.intellij.platform.settings") version "2.13.1"
     // Use the Foojay Toolchains plugin to automatically download JDKs required by subprojects.
     // https://github.com/gradle/foojay-toolchains/tags
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
