@@ -8,15 +8,18 @@ import com.intellij.model.psi.PsiSymbolReferenceProvider
 import com.intellij.model.search.SearchRequest
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.util.ExceptionUtil
+import io.github.kingg22.kotlinpoet.assistant.domain.extractor.extractMapEntry
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.putCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.toTextRange
+import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
@@ -24,30 +27,9 @@ import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 import org.jetbrains.kotlin.psi.ValueArgument
 
+@Suppress("UnstableApiUsage")
 class KotlinPoetReferenceProvider : PsiSymbolReferenceProvider {
     private val logger = thisLogger()
-
-    private fun isFirstArgument(element: PsiElement): Boolean {
-        val valueArgument = PsiTreeUtil.getParentOfType(element, KtValueArgument::class.java)
-            ?: return false
-        val valueArgumentList = PsiTreeUtil.getParentOfType(valueArgument, KtValueArgumentList::class.java)
-            ?: return false
-        return valueArgumentList.arguments.indexOf(valueArgument) == 0
-    }
-
-    private fun hintsCheck(hints: PsiSymbolReferenceHints): Boolean {
-        if (!hints.referenceClass.isAssignableFrom(KotlinPoetPlaceholderReference::class.java)) {
-            return false
-        }
-
-        val targetClass = hints.targetClass
-        if (targetClass != null && !targetClass.isAssignableFrom(KotlinPoetArgumentSymbol::class.java)) {
-            return false
-        }
-
-        val target = hints.target
-        return target == null || target is KotlinPoetArgumentSymbol
-    }
 
     override fun getReferences(
         element: PsiExternalReferenceHost,
@@ -76,11 +58,11 @@ class KotlinPoetReferenceProvider : PsiSymbolReferenceProvider {
 
             for ((placeholder, argValue) in boundPlaceholders) {
                 val targetExpression: KtExpression = when {
-                    argValue != null ->
-                        resolvePsiTarget(args, argValue)
+                    argValue != null -> resolvePsiTarget(call, args, argValue)
 
                     placeholder.binding is PlaceholderSpec.PlaceholderBinding.Named && args.size >= 2 ->
-                        args[1].getArgumentExpression()
+                        resolveNamedTarget(args[1].getArgumentExpression(), placeholder.binding.name)
+                            ?: args[1].getArgumentExpression()
 
                     else -> continue
                 } ?: continue
@@ -126,25 +108,64 @@ class KotlinPoetReferenceProvider : PsiSymbolReferenceProvider {
         }
     }
 
-    /**
-     * Heurística / Resolución: Convierte el objeto de dominio 'ArgumentValue'
-     * en el 'KtExpression' real.
-     */
-    private fun resolvePsiTarget(psiArgs: List<ValueArgument>, value: ArgumentValue): KtExpression? =
-        if (value.isRelative || value.isPositional) {
-            val index = value.index
-            if (index != null && index in psiArgs.indices) {
-                psiArgs[index].getArgumentExpression()
-            } else {
-                null
-            }
-        } else {
-            if (psiArgs.size >= 2) {
-                psiArgs[1].getArgumentExpression()
-            } else {
-                null
-            }
-        }
-
     override fun getSearchRequests(project: Project, target: Symbol): Collection<SearchRequest> = emptyList()
+}
+
+private fun isFirstArgument(element: PsiElement): Boolean {
+    val valueArgument = PsiTreeUtil.getParentOfType(element, KtValueArgument::class.java)
+        ?: return false
+    val valueArgumentList = PsiTreeUtil.getParentOfType(valueArgument, KtValueArgumentList::class.java)
+        ?: return false
+    return valueArgumentList.arguments.indexOf(valueArgument) == 0
+}
+
+@Suppress("UnstableApiUsage")
+private fun hintsCheck(hints: PsiSymbolReferenceHints): Boolean {
+    if (!hints.referenceClass.isAssignableFrom(KotlinPoetPlaceholderReference::class.java)) {
+        return false
+    }
+
+    val targetClass = hints.targetClass
+    if (targetClass != null && !targetClass.isAssignableFrom(KotlinPoetArgumentSymbol::class.java)) {
+        return false
+    }
+
+    val target = hints.target
+    return target == null || target is KotlinPoetArgumentSymbol
+}
+
+/**
+ * Heurística / Resolución: Convierte el objeto de dominio 'ArgumentValue'
+ * en el 'KtExpression' real.
+ */
+private fun resolvePsiTarget(
+    call: KtCallExpression,
+    psiArgs: List<ValueArgument>,
+    value: ArgumentValue,
+): KtExpression? {
+    if (value.isNamed) {
+        val span = value.span?.singleRangeOrNull() ?: return null
+        val element = call.containingFile.findElementAt(span.first) ?: return null
+        return PsiTreeUtil.getParentOfType(element, KtExpression::class.java, false)
+            ?.takeIf { it.textRange.startOffset >= span.first && it.textRange.endOffset <= span.last + 1 }
+    }
+    val index = value.index
+    if (index != null && index in psiArgs.indices) {
+        return psiArgs[index].getArgumentExpression()
+    }
+    return null
+}
+
+private fun resolveNamedTarget(mapExpression: KtExpression?, name: String): KtExpression? {
+    val call = mapExpression as? KtCallExpression ?: return null
+    if (DumbService.isDumb(mapExpression.project)) return null
+    analyze(mapExpression) {
+        val mapArgs = call.valueArguments
+        for (entryArg in mapArgs) {
+            val entryExpr = entryArg.getArgumentExpression()
+            val (key, valueExpr) = extractMapEntry(entryExpr) ?: continue
+            if (key == name) return valueExpr
+        }
+    }
+    return null
 }

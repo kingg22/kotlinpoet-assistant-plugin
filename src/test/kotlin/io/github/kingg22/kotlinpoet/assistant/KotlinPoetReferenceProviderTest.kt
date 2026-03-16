@@ -36,6 +36,20 @@ class KotlinPoetReferenceProviderTest : BasePlatformTestCase() {
         assertEquals("\"myArg\"", sSymbol.expression.text)
     }
 
+    fun testNamedMapOfReferenceResolvesToValue() {
+        myFixture.configureByFiles("references/NamedMapOf.kt", "stubs/KotlinPoet.kt")
+        val file = myFixture.file
+        val template = PsiTreeUtil.findChildOfType(file, KtStringTemplateExpression::class.java)
+        assertNotNull(template)
+
+        val text = file.text
+        val elementStart = template!!.textRange.startOffset
+        val nameOffset = text.indexOf("%name") + 1 - elementStart
+        val symbol = resolveAtOffset(template, nameOffset)
+        assertNotNull(symbol)
+        assertEquals("\"value\"", symbol!!.expression.text)
+    }
+
     private fun resolveAtOffset(
         template: KtStringTemplateExpression,
         offsetInElement: Int,

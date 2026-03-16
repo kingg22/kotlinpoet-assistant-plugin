@@ -13,8 +13,9 @@ import com.intellij.psi.util.PsiTreeUtil
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
+@Suppress("UnstableApiUsage")
 class KotlinPoetFormatUsageSearcher : UsageSearcher {
-    private lateinit var provider: KotlinPoetReferenceProvider
+    private val provider: KotlinPoetReferenceProvider = KotlinPoetReferenceProvider()
 
     override fun collectImmediateResults(parameters: UsageSearchParameters): Collection<Usage> {
         val target = parameters.target
@@ -33,7 +34,6 @@ class KotlinPoetFormatUsageSearcher : UsageSearcher {
         formatExpr: KtExpression,
         arg: KtExpression,
     ): List<Usage> {
-        if (!this::provider.isInitialized) provider = KotlinPoetReferenceProvider()
         // 1. Obtenemos todas las referencias que el provider genera para todos los string templates
         val hosts = PsiTreeUtil.findChildrenOfType(formatExpr, KtStringTemplateExpression::class.java)
         if (hosts.isEmpty()) return listOf(PsiElementUsage(arg))
@@ -54,7 +54,6 @@ class KotlinPoetFormatUsageSearcher : UsageSearcher {
      * @see PsiUsage
      */
     class PsiElementUsage(private val myArg: PsiElement) : PsiUsage {
-        @Suppress("UnstableApiUsage")
         override fun createPointer(): Pointer<out PsiUsage?> = Pointer.hardPointer(this)
         override val file: PsiFile get() = myArg.containingFile
         override val range: TextRange get() = myArg.textRange
