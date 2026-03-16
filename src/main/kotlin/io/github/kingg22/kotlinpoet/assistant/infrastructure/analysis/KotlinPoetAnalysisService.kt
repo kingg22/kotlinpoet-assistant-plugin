@@ -12,13 +12,13 @@ import org.jetbrains.kotlin.psi.KtCallExpression
 @Suppress("UnstableApiUsage")
 private val logger = fileLogger()
 
-internal val KEY_CONTEXT: Key<CachedValue<KotlinPoetAnalysis>> = Key.create("kotlinpoet.context")
+private val KEY_CONTEXT: Key<CachedValue<KotlinPoetAnalysis>> = Key.create("kotlinpoet.context")
 
 fun putCachedAnalysis(call: KtCallExpression, kotlinPoetAnalysis: KotlinPoetAnalysis) {
     val project = call.project
     val manager = CachedValuesManager.getManager(project) ?: return
     manager.createCachedValue {
-        CachedValueProvider.Result.create(kotlinPoetAnalysis, call, call.containingFile)
+        CachedValueProvider.Result.create(kotlinPoetAnalysis, call)
     }.also {
         call.putUserData(KEY_CONTEXT, it)
     }
@@ -41,7 +41,6 @@ fun getCachedAnalysis(call: KtCallExpression?): KotlinPoetAnalysis? {
             CachedValueProvider.Result.create(
                 context?.let { KotlinPoetAnalysis(context, isBound = false, isValidated = false) },
                 call,
-                call.containingFile,
             )
         }.also {
             call.putUserData(KEY_CONTEXT, it)
