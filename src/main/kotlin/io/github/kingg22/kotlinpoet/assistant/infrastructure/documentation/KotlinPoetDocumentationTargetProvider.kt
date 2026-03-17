@@ -2,6 +2,7 @@ package io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation
 
 import com.intellij.lang.documentation.DocumentationMarkup
 import com.intellij.model.Pointer
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.platform.backend.documentation.DocumentationResult
 import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.documentation.DocumentationTargetProvider
@@ -17,6 +18,7 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 
 class KotlinPoetDocumentationTargetProvider : DocumentationTargetProvider {
+    private val logger = thisLogger()
 
     override fun documentationTargets(file: PsiFile, offset: Int): List<DocumentationTarget> {
         if (file.language != KotlinLanguage.INSTANCE) return emptyList()
@@ -39,12 +41,14 @@ class KotlinPoetDocumentationTargetProvider : DocumentationTargetProvider {
 
         val fallback = resolveControlSymbolFromSource(file, template, offset)
         if (fallback != null) {
+            logger.warn("Control symbol not found in analysis, but found fallback of $fallback")
             return listOf(KotlinPoetDocumentationTarget(DocToken.Control(fallback)))
         }
 
         return emptyList()
     }
 
+    @Suppress("UnstableApiUsage")
     private class KotlinPoetDocumentationTarget(private val token: DocToken) : DocumentationTarget {
 
         override fun createPointer(): Pointer<out DocumentationTarget> = Pointer.hardPointer(this)

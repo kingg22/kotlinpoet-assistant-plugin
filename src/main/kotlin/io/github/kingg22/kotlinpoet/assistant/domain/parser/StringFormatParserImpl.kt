@@ -44,8 +44,11 @@ class StringFormatParserImpl : StringFormatParser {
                 state.cursor++
                 continue
             }
-            // 1. Analizar si es un inicio de token (%)
-            if (state.current() == '%') {
+            // 1. Analizar si es un control symbol
+            if (tryParseControl(state, state.cursor)) {
+                continue
+                // 2. Analizar si es un inicio de token (%)
+            } else if (state.current() == '%') {
                 parsePercentToken(state)
             } else {
                 // Avanzamos caracteres normales
@@ -67,13 +70,10 @@ class StringFormatParserImpl : StringFormatParser {
         // CodeBlock chequea Named primero si hay un ':' adelante
         if (tryParseNamed(state, start)) return
 
-        // Check 2: Control Symbols (%%, %>, %W, etc)
-        if (tryParseControl(state, start)) return
-
-        // Check 3: Positional Arguments (%1L)
+        // Check 2: Positional Arguments (%1L)
         if (tryParsePositional(state, start)) return
 
-        // Check 4: Relative Arguments (%L)
+        // Check 3: Relative Arguments (%L)
         if (tryParseRelative(state, start)) return
 
         // Fallback: Si llegamos aquí, es un % colgado o inválido
@@ -118,18 +118,24 @@ class StringFormatParserImpl : StringFormatParser {
 
     /** Intenta parsear símbolos de control */
     private fun tryParseControl(state: ParseState, start: Int): Boolean {
-        val nextChar = state.peek() ?: return false
+        val char = state.peek(0) ?: return false
+        val nextChar = state.peek(1)
 
-        // Construimos el token de 2 caracteres (ej: %>)
-        val token = "%$nextChar"
-        val symbolType = ControlSymbol.SymbolType.fromString(token)
+        val controlSymbolType = if (char == '%') {
+            if (nextChar != '%') return false
+            ControlSymbol.SymbolType.LITERAL_PERCENT
+        } else {
+            // 2. Unicode control symbols
+            ControlSymbol.SymbolType.fromString(char.toString())
+        }
 
-        if (symbolType != null) {
-            val end = start + 2
-            state.controlSymbols.add(ControlSymbol(symbolType, state.text.span(start, end)))
+        if (controlSymbolType != null) {
+            val end = start + controlSymbolType.value.length
+            state.controlSymbols.add(ControlSymbol(controlSymbolType, state.text.span(start, end)))
             state.cursor = end
             return true
         }
+
         return false
     }
 
