@@ -1,11 +1,13 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis
 
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.fileLogger
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.util.Key
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
+import com.intellij.util.ExceptionUtil
 import io.github.kingg22.kotlinpoet.assistant.domain.extractor.FormatContextExtractorRegistry
 import org.jetbrains.kotlin.psi.KtCallExpression
 
@@ -35,7 +37,13 @@ fun getCachedAnalysis(call: KtCallExpression?): KotlinPoetAnalysis? {
                 logger.info("Skipping extract kotlinpoet call in dumb mode")
                 null
             } else {
-                FormatContextExtractorRegistry.extract(call)
+                try {
+                    FormatContextExtractorRegistry.extract(call)
+                } catch (e: Exception) {
+                    if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
+                    logger.warn("Error extracting kotlinpoet call", e)
+                    null
+                }
             }
 
             CachedValueProvider.Result.create(

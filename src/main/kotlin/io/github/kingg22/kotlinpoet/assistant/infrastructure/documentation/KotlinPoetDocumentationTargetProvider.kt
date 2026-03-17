@@ -2,12 +2,14 @@ package io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation
 
 import com.intellij.lang.documentation.DocumentationMarkup
 import com.intellij.model.Pointer
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.platform.backend.documentation.DocumentationResult
 import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.documentation.DocumentationTargetProvider
 import com.intellij.platform.backend.presentation.TargetPresentation
 import com.intellij.psi.PsiFile
+import com.intellij.util.ExceptionUtil
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
@@ -21,28 +23,33 @@ class KotlinPoetDocumentationTargetProvider : DocumentationTargetProvider {
     private val logger = thisLogger()
 
     override fun documentationTargets(file: PsiFile, offset: Int): List<DocumentationTarget> {
-        if (file.language != KotlinLanguage.INSTANCE) return emptyList()
+        try {
+            if (file.language != KotlinLanguage.INSTANCE) return emptyList()
 
-        val element = file.findElementAt(offset) ?: return emptyList()
-        val template = element.getParentOfType<KtStringTemplateExpression>(false) ?: return emptyList()
-        val call = template.getParentOfType<KtCallExpression>(false) ?: return emptyList()
+            val element = file.findElementAt(offset) ?: return emptyList()
+            val template = element.getParentOfType<KtStringTemplateExpression>(false) ?: return emptyList()
+            val call = template.getParentOfType<KtCallExpression>(false) ?: return emptyList()
 
-        val format = getCachedAnalysis(call)?.format ?: return emptyList()
+            val format = getCachedAnalysis(call)?.format ?: return emptyList()
 
-        val placeholder = format.placeholders.firstOrNull { it.span.contains(offset) }
-        if (placeholder != null) {
-            return listOf(KotlinPoetDocumentationTarget(DocToken.Placeholder(placeholder.kind)))
-        }
+            val placeholder = format.placeholders.firstOrNull { it.span.contains(offset) }
+            if (placeholder != null) {
+                return listOf(KotlinPoetDocumentationTarget(DocToken.Placeholder(placeholder.kind)))
+            }
 
-        val control = format.controlSymbols.firstOrNull { it.span.contains(offset) }
-        if (control != null) {
-            return listOf(KotlinPoetDocumentationTarget(DocToken.Control(control.type)))
-        }
+            val control = format.controlSymbols.firstOrNull { it.span.contains(offset) }
+            if (control != null) {
+                return listOf(KotlinPoetDocumentationTarget(DocToken.Control(control.type)))
+            }
 
-        val fallback = resolveControlSymbolFromSource(file, template, offset)
-        if (fallback != null) {
-            logger.warn("Control symbol not found in analysis, but found fallback of $fallback")
-            return listOf(KotlinPoetDocumentationTarget(DocToken.Control(fallback)))
+            val fallback = resolveControlSymbolFromSource(file, template, offset)
+            if (fallback != null) {
+                logger.warn("Control symbol not found in analysis, but found fallback of $fallback")
+                return listOf(KotlinPoetDocumentationTarget(DocToken.Control(fallback)))
+            }
+        } catch (e: Exception) {
+            if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
+            logger.error("Error trying to provide documentation for KotlinPoet format string", e)
         }
 
         return emptyList()
