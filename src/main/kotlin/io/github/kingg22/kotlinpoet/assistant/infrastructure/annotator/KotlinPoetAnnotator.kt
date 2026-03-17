@@ -15,7 +15,6 @@ import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemSeverity
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.putCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.toTextRanges
-import org.jetbrains.annotations.VisibleForTesting
 import org.jetbrains.kotlin.psi.KtCallExpression
 
 class KotlinPoetAnnotator :
@@ -39,7 +38,6 @@ class KotlinPoetAnnotator :
             // 3. Lógica de Binding y Validación
             kotlinPoetAnalysis = kotlinPoetAnalysis.validate()
             putCachedAnalysis(element, kotlinPoetAnalysis)
-            val boundContext = kotlinPoetAnalysis.bounds
             val problems = kotlinPoetAnalysis.problems
 
             problems.forEach { it.renderProblem(element, holder) }
@@ -47,16 +45,14 @@ class KotlinPoetAnnotator :
                 controlSymbol.span.toTextRanges().forEach { range ->
                     holder.highlight(
                         range,
-                        KotlinPoetHighlightKeys.CONTROL_SYMBOL,
+                        key = KotlinPoetHighlightKeys.CONTROL_SYMBOL,
                     )
                 }
             }
-            boundContext.forEach { (placeholder, arg) ->
-                placeholder.span.toTextRanges().forEach { range ->
-                    holder.highlight(range, KotlinPoetHighlightKeys.PLACEHOLDER)
-                }
-                arg?.span?.toTextRanges()?.forEach { range ->
-                    holder.highlight(range, KotlinPoetHighlightKeys.ARGUMENT)
+            kotlinPoetAnalysis.placeholders.forEach { placeholder ->
+                val placeholderRanges = placeholder.span.toTextRanges()
+                placeholderRanges.forEach { range ->
+                    holder.highlight(range, key = KotlinPoetHighlightKeys.PLACEHOLDER)
                 }
             }
         } catch (e: Exception) {
@@ -67,8 +63,7 @@ class KotlinPoetAnnotator :
     }
 
     /** Helper para renderizar reportes */
-    @VisibleForTesting
-    fun FormatProblem.renderProblem(element: PsiElement, holder: AnnotationHolder) {
+    private fun FormatProblem.renderProblem(element: PsiElement, holder: AnnotationHolder) {
         val textRanges = target.toTextRanges(element)
         if (textRanges.isEmpty()) return
 
@@ -90,15 +85,15 @@ class KotlinPoetAnnotator :
             builder.range(textRange).create()
         }
     }
+}
 
-    fun AnnotationHolder.highlight(
-        range: TextRange,
-        key: TextAttributesKey,
-        severity: HighlightSeverity = HighlightSeverity.INFORMATION,
-    ) {
-        newSilentAnnotation(severity)
-            .textAttributes(key)
-            .range(range)
-            .create()
-    }
+private fun AnnotationHolder.highlight(
+    range: TextRange,
+    key: TextAttributesKey,
+    severity: HighlightSeverity = HighlightSeverity.INFORMATION,
+) {
+    newSilentAnnotation(severity)
+        .textAttributes(key)
+        .range(range)
+        .create()
 }

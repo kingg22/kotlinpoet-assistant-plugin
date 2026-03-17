@@ -17,7 +17,6 @@ import org.jetbrains.kotlin.psi.KtExpression
 /**
  * Representa un argumento de KotlinPoet como un destino navegable.
  * @property expression argumento de la función, no es el string template
- * @property argumentIndex índice para poder identificar el argumento dentro de la llamada
  */
 @Suppress("UnstableApiUsage")
 data class KotlinPoetArgumentSymbol(val expression: KtExpression) :
@@ -41,7 +40,7 @@ data class KotlinPoetArgumentSymbol(val expression: KtExpression) :
     fun getFormatExpression(): KtExpression? {
         val callExpression = PsiTreeUtil.getParentOfType(expression, KtCallExpression::class.java) ?: return null
         // Normalmente en KotlinPoet (addCode, addStatement), el primer argumento es el formato
-        val firstArg = callExpression.valueArguments.firstOrNull()?.getArgumentExpression() ?: return null
+        val firstArg = callExpression.valueArguments.firstOrNull()?.getArgumentExpression()
         return firstArg
     }
 }
