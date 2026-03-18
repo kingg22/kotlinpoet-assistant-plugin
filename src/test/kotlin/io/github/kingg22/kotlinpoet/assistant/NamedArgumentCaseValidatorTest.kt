@@ -50,7 +50,7 @@ class NamedArgumentCaseValidatorTest {
         val problems = validator.validate(bound, args)
 
         assertEquals(1, problems.size, "Expected exactly one problem (deduplicated placeholder + key)")
-        assertEquals(ProblemSeverity.WARNING, problems.first().severity)
+        assertEquals(ProblemSeverity.ERROR, problems.first().severity)
         assertEquals("Food", problems.first().data)
         assertTrue(
             problems.first().target is ProblemTarget.Placeholder,
@@ -120,11 +120,11 @@ class NamedArgumentCaseValidatorTest {
     }
 
     @Test
-    fun `invalid key in incomplete map is NOT reported`() {
+    fun `invalid key in incomplete map is reported`() {
         // bound has no named placeholders; map is incomplete → no validation at all
         val args = namedMap("BadKey" to argValue("BadKey"), isComplete = false)
         val problems = validator.validate(emptyList(), args)
-        assertTrue(problems.isEmpty(), "Should suppress map-key validation when isComplete=false")
+        assertTrue(problems.isNotEmpty(), "Should report map-key validation when is incomplete")
     }
 
     @Test
