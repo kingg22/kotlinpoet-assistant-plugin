@@ -44,7 +44,6 @@ class KotlinPoetReferenceProvider : PsiSymbolReferenceProvider {
 
         try {
             val boundPlaceholders = getCachedAnalysis(call)
-                ?.takeUnless { it.haveFormatProblems }
                 ?.bind()
                 ?.also { putCachedAnalysis(call, it) }
                 ?.bounds

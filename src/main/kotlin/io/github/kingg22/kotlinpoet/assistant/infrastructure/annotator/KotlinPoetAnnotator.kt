@@ -10,8 +10,6 @@ import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.util.ExceptionUtil
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatProblem
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemSeverity
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.putCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.toTextRanges
@@ -26,19 +24,11 @@ class KotlinPoetAnnotator :
         if (element !is KtCallExpression) return
 
         try {
-            // 1. Extraemos el contexto (Modelos de dominio)
-            var kotlinPoetAnalysis = getCachedAnalysis(element) ?: return
-
-            // 2. Renderizar errores de parseo (ej: mezcla inválida, sintaxis rota)
-            if (kotlinPoetAnalysis.haveFormatProblems) {
-                kotlinPoetAnalysis.format.errors.forEach { it.renderProblem(element, holder) }
-                return // Si el formato está roto, no intentamos validar argumentos
-            }
-
-            // 3. Lógica de Binding
-            kotlinPoetAnalysis = kotlinPoetAnalysis.bind()
+            // 1. Extraemos el contexto (Modelos de dominio) y se hace binding
+            val kotlinPoetAnalysis = getCachedAnalysis(element)?.bind() ?: return
             putCachedAnalysis(element, kotlinPoetAnalysis)
 
+            // 2. Renderizamos los highlights encontrados
             kotlinPoetAnalysis.controlSymbols.forEach { controlSymbol ->
                 controlSymbol.span.toTextRanges().forEach { range ->
                     holder.highlight(
@@ -56,30 +46,6 @@ class KotlinPoetAnnotator :
             if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
             // Fail-safe para no romper el editor si el binding falla inesperadamente
             logger.error("Error trying to highlight KotlinPoet format string", e)
-        }
-    }
-
-    /** Helper para renderizar reportes */
-    private fun FormatProblem.renderProblem(element: PsiElement, holder: AnnotationHolder) {
-        val textRanges = target.toTextRanges(element)
-        if (textRanges.isEmpty()) return
-
-        textRanges.forEach { textRange ->
-            // Validación de seguridad para evitar "Range must be inside element"
-            // Solo dibujamos si el rango calculado es válido y tiene sentido
-            if (textRange.endOffset > element.containingFile.textLength) {
-                logger.warn("Text range out of bounds: $textRange for element: $element, problem: $this")
-                return@forEach
-            }
-
-            val builder = when (severity) {
-                ProblemSeverity.INFORMATION -> holder.newAnnotation(HighlightSeverity.INFORMATION, message)
-                ProblemSeverity.WARNING -> holder.newAnnotation(HighlightSeverity.WARNING, message)
-                ProblemSeverity.ERROR -> holder.newAnnotation(HighlightSeverity.ERROR, message)
-            }
-
-            // TODO add domain builder problem to provide more info like quick fix, fix, text attributes, etc
-            builder.range(textRange).create()
         }
     }
 }

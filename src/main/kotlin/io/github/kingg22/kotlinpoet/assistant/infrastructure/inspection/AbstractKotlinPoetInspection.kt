@@ -46,14 +46,8 @@ abstract class AbstractKotlinPoetInspection :
         object : KtVisitorVoid() {
             override fun visitCallExpression(expression: KtCallExpression) {
                 try {
-                    var analysis = getCachedAnalysis(expression) ?: return
-
-                    // Format-level parse errors are handled by KotlinPoetAnnotator; skip here.
-                    if (analysis.haveFormatProblems) return
-
-                    analysis = analysis.bind()
+                    val analysis = getCachedAnalysis(expression)?.bind() ?: return
                     putCachedAnalysis(expression, analysis)
-
                     checkCall(expression, analysis, holder)
                 } catch (e: Exception) {
                     if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
