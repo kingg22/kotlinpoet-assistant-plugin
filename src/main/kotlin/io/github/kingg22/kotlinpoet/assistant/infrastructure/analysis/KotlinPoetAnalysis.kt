@@ -8,9 +8,7 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.domain.text.FormatText
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.BoundContext
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatProblem
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatValidatorRegistry
 
 data class KotlinPoetAnalysis(
     val callContext: KotlinPoetCallContext,
@@ -35,15 +33,5 @@ data class KotlinPoetAnalysis(
         val bindingEngine = BindingEngineResolver.forStyle(callContext.format.style)
         val boundPlaceholders = bindingEngine.bind(callContext.format, callContext.arguments)
         this.copy(bounds = boundPlaceholders, isBound = true)
-    }
-
-    fun validate(): KotlinPoetAnalysis = if (isValidated) {
-        this
-    } else {
-        val boundAnalysis = this.bind()
-        val boundPlaceholder = boundAnalysis.bounds
-        val argumentSource = boundAnalysis.argumentSource
-        val problems = FormatValidatorRegistry.validate(BoundContext(boundPlaceholder, argumentSource))
-        boundAnalysis.copy(problems = problems, isValidated = true)
     }
 }

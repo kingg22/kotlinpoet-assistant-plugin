@@ -35,12 +35,10 @@ class KotlinPoetAnnotator :
                 return // Si el formato está roto, no intentamos validar argumentos
             }
 
-            // 3. Lógica de Binding y Validación
-            kotlinPoetAnalysis = kotlinPoetAnalysis.validate()
+            // 3. Lógica de Binding
+            kotlinPoetAnalysis = kotlinPoetAnalysis.bind()
             putCachedAnalysis(element, kotlinPoetAnalysis)
-            val problems = kotlinPoetAnalysis.problems
 
-            problems.forEach { it.renderProblem(element, holder) }
             kotlinPoetAnalysis.controlSymbols.forEach { controlSymbol ->
                 controlSymbol.span.toTextRanges().forEach { range ->
                     holder.highlight(
@@ -50,8 +48,7 @@ class KotlinPoetAnnotator :
                 }
             }
             kotlinPoetAnalysis.placeholders.forEach { placeholder ->
-                val placeholderRanges = placeholder.span.toTextRanges()
-                placeholderRanges.forEach { range ->
+                placeholder.span.toTextRanges().forEach { range ->
                     holder.highlight(range, key = KotlinPoetHighlightKeys.PLACEHOLDER)
                 }
             }

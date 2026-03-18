@@ -2,23 +2,23 @@ package io.github.kingg22.kotlinpoet.assistant.domain.validation.validators
 
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
+import io.github.kingg22.kotlinpoet.assistant.domain.model.BoundPlaceholder
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.BoundContext
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatProblem
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatValidator
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemSeverity
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemTarget
 
 class ExtraArgumentValidator : FormatValidator {
-    override fun validate(context: BoundContext): List<FormatProblem> {
-        val placeholders = context.bound.map { it.placeholder }
+    override fun validate(bound: List<BoundPlaceholder>, arguments: ArgumentSource): List<FormatProblem> {
+        val placeholders = bound.map { it.placeholder }
         if (placeholders.isEmpty()) return emptyList()
 
-        return when (val args = context.arguments) {
+        return when (arguments) {
             is ArgumentSource.VarArgs -> {
                 if (placeholders.any { it.binding is PlaceholderSpec.PlaceholderBinding.Relative }) {
-                    val extra = args.arguments.drop(placeholders.size)
+                    val extra = arguments.arguments.drop(placeholders.size)
                     extra.mapIndexed { i, arg ->
                         buildArgumentProblem(
                             index1Based = placeholders.size + i + 1,
@@ -29,7 +29,7 @@ class ExtraArgumentValidator : FormatValidator {
                     val used = placeholders.mapNotNull {
                         (it.binding as? PlaceholderSpec.PlaceholderBinding.Positional)?.index1Based
                     }.toSet()
-                    args.arguments.mapIndexedNotNull { i, arg ->
+                    arguments.arguments.mapIndexedNotNull { i, arg ->
                         val index1 = i + 1
                         if (index1 in used) null else buildArgumentProblem(index1, arg.span)
                     }
@@ -39,11 +39,11 @@ class ExtraArgumentValidator : FormatValidator {
             }
 
             is ArgumentSource.NamedMap -> {
-                if (!args.isComplete) return emptyList()
+                if (!arguments.isComplete) return emptyList()
                 val used = placeholders.mapNotNull {
                     (it.binding as? PlaceholderSpec.PlaceholderBinding.Named)?.name
                 }.toSet()
-                args.entries
+                arguments.entries
                     .filterKeys { it !in used }
                     .mapNotNull { (name, arg) ->
                         buildNamedProblem(name, arg.span)

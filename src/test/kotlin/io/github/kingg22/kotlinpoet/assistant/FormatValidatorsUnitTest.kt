@@ -8,7 +8,6 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.FormatKind
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.BoundContext
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.validators.ExtraArgumentValidator
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.validators.TypeMismatchValidator
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -29,7 +28,7 @@ class FormatValidatorsUnitTest {
             ),
         )
 
-        val problems = ExtraArgumentValidator().validate(BoundContext(bound, args))
+        val problems = ExtraArgumentValidator().validate(bound, args)
         assertEquals(1, problems.size)
     }
 
@@ -46,7 +45,7 @@ class FormatValidatorsUnitTest {
             ),
         )
 
-        val problems = ExtraArgumentValidator().validate(BoundContext(bound, args))
+        val problems = ExtraArgumentValidator().validate(bound, args)
         assertEquals(1, problems.size)
     }
 
@@ -68,7 +67,7 @@ class FormatValidatorsUnitTest {
             isComplete = true,
         )
 
-        val problems = ExtraArgumentValidator().validate(BoundContext(bound, args))
+        val problems = ExtraArgumentValidator().validate(bound, args)
         assertEquals(1, problems.size)
     }
 
@@ -85,7 +84,7 @@ class FormatValidatorsUnitTest {
             listOf(ArgumentValue.positionalOrRelative(1, ArgumentType.Primitive("kotlin.String"))),
         )
 
-        val problems = TypeMismatchValidator().validate(BoundContext(bound, args))
+        val problems = TypeMismatchValidator().validate(bound, args)
         assertEquals(1, problems.size)
     }
 
@@ -97,7 +96,7 @@ class FormatValidatorsUnitTest {
         )
         val args = ArgumentSource.VarArgs(listOf(ArgumentValue.positionalOrRelative(1, ArgumentType.StringType)))
 
-        val problems = TypeMismatchValidator().validate(BoundContext(bound, args))
+        val problems = TypeMismatchValidator().validate(bound, args)
         assertTrue(problems.isEmpty())
     }
 }

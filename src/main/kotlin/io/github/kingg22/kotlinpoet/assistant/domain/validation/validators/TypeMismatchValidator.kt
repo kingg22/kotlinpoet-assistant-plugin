@@ -1,48 +1,50 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.validation.validators
 
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
+import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentType
+import io.github.kingg22.kotlinpoet.assistant.domain.model.BoundPlaceholder
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.FormatKind
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.BoundContext
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatProblem
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatValidator
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemSeverity
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemTarget
 
 class TypeMismatchValidator : FormatValidator {
-    override fun validate(context: BoundContext): List<FormatProblem> = context.bound.flatMap { bound ->
-        val argType = bound.argument?.type ?: return@flatMap emptyList()
-        if (argType is ArgumentType.Unknown) return@flatMap emptyList()
+    override fun validate(bound: List<BoundPlaceholder>, arguments: ArgumentSource): List<FormatProblem> =
+        bound.flatMap { bound ->
+            val argType = bound.argument?.type ?: return@flatMap emptyList()
+            if (argType is ArgumentType.Unknown) return@flatMap emptyList()
 
-        val expected = expectedTypeFor(bound.placeholder.kind) ?: return@flatMap emptyList()
-        if (isCompatible(expected, argType)) return@flatMap emptyList()
+            val expected = expectedTypeFor(bound.placeholder.kind) ?: return@flatMap emptyList()
+            if (isCompatible(expected, argType)) return@flatMap emptyList()
 
-        val message = KPoetAssistantBundle.getMessage(
-            "argument.format.type.mismatch",
-            bound.placeholder.kind.value,
-            expected.label,
-            argTypeLabel(argType),
-        )
-
-        buildList {
-            add(
-                FormatProblem(
-                    severity = expected.severity,
-                    message = message,
-                    target = ProblemTarget.Placeholder(bound.placeholder.span),
-                ),
+            val message = KPoetAssistantBundle.getMessage(
+                "argument.format.type.mismatch",
+                bound.placeholder.kind.value,
+                expected.label,
+                argTypeLabel(argType),
             )
-            bound.argument.span?.let { span ->
+
+            buildList {
                 add(
                     FormatProblem(
                         severity = expected.severity,
                         message = message,
-                        target = ProblemTarget.Argument(span),
+                        target = ProblemTarget.Placeholder(bound.placeholder.span),
                     ),
                 )
+                bound.argument.span?.let { span ->
+                    add(
+                        FormatProblem(
+                            severity = expected.severity,
+                            message = message,
+                            target = ProblemTarget.Argument(span),
+                        ),
+                    )
+                }
             }
         }
-    }
 
     private fun expectedTypeFor(kind: FormatKind): Expected? = when (kind) {
         FormatKind.STRING,
