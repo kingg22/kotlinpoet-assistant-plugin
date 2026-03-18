@@ -103,11 +103,6 @@ class StringFormatParserImpl : StringFormatParser {
             val typeChar = matcher.group(2)
             val end = start + matcher.end()
 
-            // Validar regla de CodeBlock: debe empezar con minúscula
-            if (!name[0].isLowerCase()) {
-                reportError(state, start, end, KPoetAssistantBundle.getMessage("named.argument.lowercase", name))
-            }
-
             addPlaceholder(state, typeChar, PlaceholderBinding.Named(name), start, end)
             state.hasNamed = true
             state.cursor = end

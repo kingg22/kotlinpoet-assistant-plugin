@@ -6,4 +6,5 @@ data class FormatProblem(
     val severity: ProblemSeverity,
     @param:Nls @field:Nls @get:Nls val message: String,
     val target: ProblemTarget,
+    val data: Any? = null,
 )
