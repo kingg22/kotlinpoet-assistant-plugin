@@ -27,7 +27,8 @@ data class KotlinPoetAnalysis(
     val haveProblems: Boolean get() = problems.isNotEmpty()
     val haveFormatProblems: Boolean get() = formatProblems.isNotEmpty()
 
-    fun bind(): KotlinPoetAnalysis = if (isBound) {
+    fun bind(): KotlinPoetAnalysis = if (isBound || haveFormatProblems) {
+        // Skip binding if there are format problems OR if the analysis is already bound
         this
     } else {
         val bindingEngine = BindingEngineResolver.forStyle(callContext.format.style)
