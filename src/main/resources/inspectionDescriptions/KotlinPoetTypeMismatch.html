@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+<p>
+    Reports an argument whose resolved type is incompatible with the placeholder kind it is bound
+    to in a KotlinPoet format string.
+</p>
+
+<table>
+    <thead>
+        <tr><th>Placeholder</th><th>Expected type</th><th>Severity</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>%S</code> / <code>%P</code></td><td><code>String</code> / <code>CharSequence</code> / <code>CodeBlock</code></td><td>Information</td></tr>
+        <tr><td><code>%T</code></td><td><code>TypeName</code>, <code>KClass</code>, <code>Class</code>, <code>Type</code>, <code>TypeMirror</code>, <code>Element</code></td><td>Warning</td></tr>
+        <tr><td><code>%M</code></td><td><code>MemberName</code></td><td>Warning</td></tr>
+        <tr><td><code>%N</code></td><td><code>CharSequence</code>, <code>ParameterSpec</code>, <code>PropertySpec</code>, <code>FunSpec</code>, <code>TypeSpec</code>, <code>ContextParameter</code></td><td>Warning</td></tr>
+    </tbody>
+</table>
+
+<p><b>Example (flagged):</b></p>
+<pre><code>
+val block = CodeBlock.builder().add("%T", "not a type")
+//                                       ^^^^^^^^^^^^ String passed where TypeName expected
+</code></pre>
+
+<p><b>Correct usage:</b></p>
+<pre><code>
+val block = CodeBlock.builder().add("%T", String::class)
+</code></pre>
+
+<p>No automatic fix is offered because the correct replacement type cannot be inferred.</p>
+</body>
+</html>

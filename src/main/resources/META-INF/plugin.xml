@@ -13,6 +13,70 @@
             language="kotlin"
             implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.annotator.KotlinPoetAnnotator"/>
 
+        <!-- ─── Local Inspections ──────────────────────────────────────────────── -->
+
+        <!--
+            Missing argument: a placeholder in the format string has no corresponding argument.
+            Runtime consequence: IllegalArgumentException from KotlinPoet.
+        -->
+        <localInspection
+            language="kotlin"
+            shortName="KotlinPoetMissingArgument"
+            bundle="messages.MyBundle"
+            key="inspection.missing.argument.display.name"
+            groupBundle="messages.MyBundle"
+            groupKey="inspection.group.name"
+            enabledByDefault="true"
+            level="ERROR"
+            implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections.MissingArgumentInspection"/>
+
+        <!--
+            Extra argument: an argument was supplied that has no matching placeholder.
+            Runtime consequence: IllegalArgumentException from KotlinPoet.
+        -->
+        <localInspection
+            language="kotlin"
+            shortName="KotlinPoetExtraArgument"
+            bundle="messages.MyBundle"
+            key="inspection.extra.argument.display.name"
+            groupBundle="messages.MyBundle"
+            groupKey="inspection.group.name"
+            enabledByDefault="true"
+            level="ERROR"
+            implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections.ExtraArgumentInspection"/>
+
+        <!--
+            Type mismatch: the argument's type is incompatible with the placeholder kind.
+            Severity varies per placeholder (WARNING for %T / %N / %M, INFORMATION for %S / %P).
+        -->
+        <localInspection
+            language="kotlin"
+            shortName="KotlinPoetTypeMismatch"
+            bundle="messages.MyBundle"
+            key="inspection.type.mismatch.display.name"
+            groupBundle="messages.MyBundle"
+            groupKey="inspection.group.name"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections.TypeMismatchInspection"/>
+
+        <!--
+            Named argument case: a key in the argument map does not start with a lowercase letter.
+            KotlinPoet requires keys to match [a-z]+[\w_]* — violating this causes an IllegalArgumentException at runtime.
+        -->
+        <localInspection
+            language="kotlin"
+            shortName="KotlinPoetNamedCase"
+            bundle="messages.MyBundle"
+            key="inspection.named.case.display.name"
+            groupBundle="messages.MyBundle"
+            groupKey="inspection.group.name"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections.NamedCaseInspection"/>
+
+        <!-- ─── End Local Inspections ──────────────────────────────────────────── -->
+
         <psi.symbolReferenceProvider
             hostLanguage="kotlin"
             hostElementClass="org.jetbrains.kotlin.psi.KtStringTemplateExpression"

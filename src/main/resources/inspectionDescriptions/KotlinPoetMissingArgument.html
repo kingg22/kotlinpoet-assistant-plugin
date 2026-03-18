@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+<p>
+    Reports a KotlinPoet format string that contains a placeholder (<code>%L</code>,
+    <code>%S</code>, <code>%N</code>, <code>%T</code>, <code>%M</code>, or <code>%P</code>)
+    with no corresponding argument supplied to the call.
+</p>
+<p>
+    This mismatch causes an <code>IllegalArgumentException</code> at runtime when KotlinPoet
+    processes the format string.
+</p>
+
+<p><b>Example (flagged):</b></p>
+<pre><code>
+CodeBlock.builder().add("val %N = %S")
+//                            ^^   ^^ no arguments supplied → runtime exception
+</code></pre>
+
+<p><b>Correct usage:</b></p>
+<pre><code>
+CodeBlock.builder().add("val %N = %S", "myVar", "hello")
+</code></pre>
+
+<p>
+    Because the correct argument value cannot be inferred, no automatic quick-fix is available.
+    Add the missing argument manually.
+</p>
+</body>
+</html>

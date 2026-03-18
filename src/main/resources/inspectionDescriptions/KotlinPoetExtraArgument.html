@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+<p>
+    Reports an argument passed to a KotlinPoet call that has no matching placeholder in the
+    format string.
+</p>
+<p>
+    For positional and relative calls, a surplus argument causes an
+    <code>IllegalArgumentException</code> at runtime. For named calls the severity is informational
+    because the same map may be intentionally shared across multiple format strings.
+</p>
+
+<p><b>Example – relative (flagged):</b></p>
+<pre><code>
+CodeBlock.builder().add("Hello %L", name, extraValue)
+//                                        ^^^^^^^^^^ no placeholder for this argument
+</code></pre>
+
+<p><b>Example – named (informational):</b></p>
+<pre><code>
+CodeBlock.builder().addNamed("%food:L", mapOf("food" to "tacos", "count" to 3))
+//                                                               ^^^^^^^^^^^^^ unused key
+</code></pre>
+
+<p><b>Quick fix:</b> <i>Remove extra argument</i> – deletes the surplus argument from the call site.</p>
+</body>
+</html>

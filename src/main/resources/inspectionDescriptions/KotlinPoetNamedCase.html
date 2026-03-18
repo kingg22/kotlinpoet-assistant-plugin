@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+<p>
+    Reports a named-argument key that does not conform to KotlinPoet's required naming pattern.
+    Keys must match the regular expression <code>[a-z]+[\w_]*</code> — they must start with a
+    lowercase ASCII letter.
+</p>
+<p>
+    Passing an invalid key to <code>addNamed</code> causes an <code>IllegalArgumentException</code>
+    at runtime (mirroring the check inside <code>CodeBlock.addNamed</code>).
+</p>
+
+<p><b>Example (flagged):</b></p>
+<pre><code>
+CodeBlock.builder().addNamed(
+    "%Food:L",
+    mapOf("Food" to "tacos")  // 'Food' starts with uppercase → runtime exception
+)
+</code></pre>
+
+<p><b>Correct usage:</b></p>
+<pre><code>
+CodeBlock.builder().addNamed(
+    "%food:L",
+    mapOf("food" to "tacos")
+)
+</code></pre>
+
+<p>
+    <b>Quick fix:</b> <i>Rename 'Food' to 'food'</i> – converts the key to lowercase and updates
+    the matching placeholder in the format string simultaneously.
+</p>
+</body>
+</html>
