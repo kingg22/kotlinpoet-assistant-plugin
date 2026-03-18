@@ -12,11 +12,9 @@ import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemSeverity
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemTarget
 import org.jetbrains.annotations.Nls
 
-class StringFormatParserImpl : StringFormatParser {
-    companion object {
-        private val NAMED_ARGUMENT_PATTERN = "%([\\w_]+):(\\w)".toPattern()
-    }
+private val NAMED_ARGUMENT_PATTERN = "%([\\w_]+):(\\w)".toPattern()
 
+class StringFormatParserImpl : StringFormatParser {
     /** Actual parser state */
     private class ParseState(val text: FormatText) {
         val rawString: String = text.asString()

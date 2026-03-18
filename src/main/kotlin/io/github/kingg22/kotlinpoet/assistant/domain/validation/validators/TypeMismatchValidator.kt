@@ -91,46 +91,44 @@ class TypeMismatchValidator : FormatValidator {
         MEMBER("MemberName", ProblemSeverity.WARNING),
         NAME("Name", ProblemSeverity.WARNING),
     }
-
-    private companion object {
-        private const val FQ_CHAR_SEQUENCE = "kotlin.CharSequence"
-        private const val FQ_MEMBER_NAME = "com.squareup.kotlinpoet.MemberName"
-        private const val FQ_CODE_BLOCK = "com.squareup.kotlinpoet.CodeBlock"
-        private const val FQ_TYPE_NAME = "com.squareup.kotlinpoet.TypeName"
-        private const val FQ_KCLASS = "kotlin.reflect.KClass"
-        private const val FQ_JAVA_CLASS = "java.lang.Class"
-        private const val FQ_JAVA_TYPE = "java.lang.reflect.Type"
-        private const val FQ_TYPE_MIRROR = "javax.lang.model.type.TypeMirror"
-        private const val FQ_ELEMENT = "javax.lang.model.element.Element"
-
-        private const val FQ_PARAMETER_SPEC = "com.squareup.kotlinpoet.ParameterSpec"
-        private const val FQ_PROPERTY_SPEC = "com.squareup.kotlinpoet.PropertySpec"
-        private const val FQ_FUN_SPEC = "com.squareup.kotlinpoet.FunSpec"
-        private const val FQ_TYPE_SPEC = "com.squareup.kotlinpoet.TypeSpec"
-        private const val FQ_CONTEXT_PARAMETER = "com.squareup.kotlinpoet.ContextParameter"
-
-        private val NAME_ACCEPTED = setOf(
-            FQ_CHAR_SEQUENCE,
-            FQ_MEMBER_NAME,
-            FQ_PARAMETER_SPEC,
-            FQ_PROPERTY_SPEC,
-            FQ_FUN_SPEC,
-            FQ_TYPE_SPEC,
-            FQ_CONTEXT_PARAMETER,
-        )
-
-        private val TYPE_ACCEPTED = setOf(
-            FQ_TYPE_NAME,
-            FQ_KCLASS,
-            FQ_JAVA_CLASS,
-            FQ_JAVA_TYPE,
-            FQ_TYPE_MIRROR,
-            FQ_ELEMENT,
-        )
-    }
-
-    private fun ArgumentType.Class.isOrExtends(fqName: String): Boolean =
-        this.fqName == fqName || supertypes.contains(fqName)
-
-    private fun ArgumentType.Class.matchesAny(fqNames: Set<String>): Boolean = fqNames.any { isOrExtends(it) }
 }
+
+private const val FQ_CHAR_SEQUENCE = "kotlin.CharSequence"
+private const val FQ_MEMBER_NAME = "com.squareup.kotlinpoet.MemberName"
+private const val FQ_CODE_BLOCK = "com.squareup.kotlinpoet.CodeBlock"
+private const val FQ_TYPE_NAME = "com.squareup.kotlinpoet.TypeName"
+private const val FQ_KCLASS = "kotlin.reflect.KClass"
+private const val FQ_JAVA_CLASS = "java.lang.Class"
+private const val FQ_JAVA_TYPE = "java.lang.reflect.Type"
+private const val FQ_TYPE_MIRROR = "javax.lang.model.type.TypeMirror"
+private const val FQ_ELEMENT = "javax.lang.model.element.Element"
+
+private const val FQ_PARAMETER_SPEC = "com.squareup.kotlinpoet.ParameterSpec"
+private const val FQ_PROPERTY_SPEC = "com.squareup.kotlinpoet.PropertySpec"
+private const val FQ_FUN_SPEC = "com.squareup.kotlinpoet.FunSpec"
+private const val FQ_TYPE_SPEC = "com.squareup.kotlinpoet.TypeSpec"
+private const val FQ_CONTEXT_PARAMETER = "com.squareup.kotlinpoet.ContextParameter"
+
+private val NAME_ACCEPTED = setOf(
+    FQ_CHAR_SEQUENCE,
+    FQ_MEMBER_NAME,
+    FQ_PARAMETER_SPEC,
+    FQ_PROPERTY_SPEC,
+    FQ_FUN_SPEC,
+    FQ_TYPE_SPEC,
+    FQ_CONTEXT_PARAMETER,
+)
+
+private val TYPE_ACCEPTED = setOf(
+    FQ_TYPE_NAME,
+    FQ_KCLASS,
+    FQ_JAVA_CLASS,
+    FQ_JAVA_TYPE,
+    FQ_TYPE_MIRROR,
+    FQ_ELEMENT,
+)
+
+private fun ArgumentType.Class.isOrExtends(fqName: String): Boolean =
+    this.fqName == fqName || supertypes.contains(fqName)
+
+private fun ArgumentType.Class.matchesAny(fqNames: Set<String>): Boolean = fqNames.any { isOrExtends(it) }
