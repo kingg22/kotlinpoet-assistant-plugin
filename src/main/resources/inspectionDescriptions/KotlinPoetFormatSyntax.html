@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<body>
+<p>
+    Reports non-blocking syntax issues found in a KotlinPoet format string during parsing.
+    Unlike mixed-style errors (which prevent analysis entirely), these issues allow the rest of
+    the format string and its arguments to be validated normally.
+</p>
+
+<table>
+    <thead>
+        <tr><th>Issue</th><th>Example</th><th>Quick fix</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Dangling <code>%</code></td>
+            <td><code>"total: %"</code></td>
+            <td>Escape as <code>%%</code> · Remove <code>%</code></td>
+        </tr>
+        <tr>
+            <td>Unknown placeholder type</td>
+            <td><code>"%Z value"</code></td>
+            <td>Remove <code>%Z</code></td>
+        </tr>
+        <tr>
+            <td>Invalid positional index (must be ≥ 1)</td>
+            <td><code>"%0L"</code></td>
+            <td>Fix index to 1 → <code>"%1L"</code></td>
+        </tr>
+    </tbody>
+</table>
+
+<p><b>Dangling <code>%</code> — example:</b></p>
+<pre><code>
+CodeBlock.builder().add("100% done")
+//                           ^ dangling: use %% for a literal percent sign
+</code></pre>
+
+<p><b>Corrected:</b></p>
+<pre><code>
+CodeBlock.builder().add("100%% done")
+</code></pre>
+
+<p><b>Unknown placeholder type — example:</b></p>
+<pre><code>
+CodeBlock.builder().add("%Z value", someArg)
+//                       ^^ not a valid KotlinPoet placeholder
+</code></pre>
+
+<p><b>Invalid positional index — example:</b></p>
+<pre><code>
+CodeBlock.builder().add("%0L", someArg)
+//                       ^^^ index must be 1-based (≥ 1)
+</code></pre>
+</body>
+</html>

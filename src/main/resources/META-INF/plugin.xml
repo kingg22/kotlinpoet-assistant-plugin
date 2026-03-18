@@ -75,6 +75,21 @@
             level="WARNING"
             implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections.NamedCaseInspection"/>
 
+        <!--
+            Format string syntax: dangling %, unknown placeholder type (%Z), invalid positional index (%0L).
+            Quick fixes are available for all three cases.
+        -->
+        <localInspection
+            language="kotlin"
+            shortName="KotlinPoetFormatSyntax"
+            bundle="messages.MyBundle"
+            key="inspection.format.syntax.display.name"
+            groupBundle="messages.MyBundle"
+            groupKey="inspection.group.name"
+            enabledByDefault="true"
+            level="WARNING"
+            implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections.FormatSyntaxInspection"/>
+
         <!-- ─── End Local Inspections ──────────────────────────────────────────── -->
 
         <psi.symbolReferenceProvider
