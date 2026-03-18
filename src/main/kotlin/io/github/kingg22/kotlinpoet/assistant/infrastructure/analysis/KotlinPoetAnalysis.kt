@@ -23,7 +23,7 @@ data class KotlinPoetAnalysis(
     val formatStyle: FormatStringModel.FormatStyle get() = callContext.format.style
     val placeholders: List<PlaceholderSpec> get() = format.placeholders
     val controlSymbols: List<ControlSymbol> get() = format.controlSymbols
-    val formatProblems: List<FormatProblem> get() = format.errors
+    val formatProblems: List<FormatProblem> get() = format.errors + format.warnings
     val haveProblems: Boolean get() = problems.isNotEmpty()
     val haveFormatProblems: Boolean get() = formatProblems.isNotEmpty()
 
