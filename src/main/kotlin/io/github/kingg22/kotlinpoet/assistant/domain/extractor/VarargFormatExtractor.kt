@@ -30,7 +30,7 @@ class VarargFormatExtractor(private val parser: StringFormatParser) : FormatCont
             val formatText = resolveFormatTextOrNull(formatArgExpr) ?: return@analyze null
 
             // 4. Parsear el modelo (spans absolutos)
-            val formatModel = parser.parse(formatText)
+            val formatModel = parser.parse(formatText, false, methodName)
 
             // 5. Extraer argumentos VarArg
             // Saltamos el primero (que es el format string)

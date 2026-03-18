@@ -5,12 +5,8 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
 import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParser
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
-import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
-import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
-import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
-import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 
 class NamedFormatExtractor(private val parser: StringFormatParser) : FormatContextExtractor {
@@ -27,7 +23,7 @@ class NamedFormatExtractor(private val parser: StringFormatParser) : FormatConte
             val formatArgExpr = args[0].getArgumentExpression() ?: return@analyze null
             val formatText = resolveFormatTextOrNull(formatArgExpr) ?: return@analyze null
 
-            val formatModel = parser.parse(formatText, true)
+            val formatModel = parser.parse(formatText, true, target.methodName)
 
             // 2. Extraer Mapa
             val mapArgExpr = args[1].getArgumentExpression()
@@ -74,40 +70,5 @@ class NamedFormatExtractor(private val parser: StringFormatParser) : FormatConte
                 ),
             )
         }
-    }
-}
-
-fun KaSession.extractMapEntry(entryExpr: KtExpression?): Pair<String, KtExpression?>? {
-    // En Kotlin, "key to value" es una llamada infix a la función 'to'
-    // PSI structure: KtBinaryExpression (si es infix) o KtCallExpression (si es constructor) o KtDotQualifiedExpression (si es .to())
-    return when (entryExpr) {
-        is KtBinaryExpression -> {
-            val keyExpr = entryExpr.left
-            val keyVal = keyExpr?.evaluate()?.value as? String ?: return null
-            keyVal to entryExpr.right
-        }
-
-        is KtCallExpression -> {
-            if (entryExpr.calleeExpression?.text != "Pair") return null
-            val arguments: List<KtValueArgument> = entryExpr.valueArguments
-            val keyExpr = arguments.getOrNull(0)?.getArgumentExpression()
-            val keyVal = keyExpr?.evaluate()?.value as? String ?: return null
-            val valueExpr = arguments.getOrNull(1)?.getArgumentExpression()
-            keyVal to valueExpr
-        }
-
-        is KtDotQualifiedExpression -> {
-            val callExpression = entryExpr.selectorExpression as? KtCallExpression ?: return null
-            val callName = callExpression.calleeExpression?.text ?: return null
-            if (callName != "to") return null
-            val keyExpr = entryExpr.receiverExpression
-            val keyVal = keyExpr.evaluate()?.value as? String ?: return null
-            val arguments: List<KtValueArgument> = callExpression.valueArguments
-            if (arguments.size != 1) return null
-            val valueExpr = arguments.getOrNull(0)?.getArgumentExpression()
-            keyVal to valueExpr
-        }
-
-        else -> null
     }
 }
