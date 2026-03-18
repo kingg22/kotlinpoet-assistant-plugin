@@ -1,6 +1,6 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.extractor
 
-import io.github.kingg22.kotlinpoet.assistant.adapters.types.isKotlinPoetBuilder
+import io.github.kingg22.kotlinpoet.assistant.Constants
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
@@ -13,9 +13,7 @@ import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelector
 
 object KotlinPoetCallTargetResolver {
-    private val FORMAT_METHODS = setOf("add", "addNamed", "addStatement", "addCode", "beginControlFlow", "of")
-    private val KDOC_METHODS = setOf("addKdoc")
-
+    @JvmStatic
     fun resolve(call: KtCallExpression): KotlinPoetCallTarget? = analyze(call) {
         val resolvedCall: KaCallableMemberCall<*, *>? = call.resolveToCall()?.singleCallOrNull()
 
@@ -68,15 +66,30 @@ object KotlinPoetCallTargetResolver {
 
         return@analyze null
     }
+}
+private val FORMAT_METHODS = setOf("add", "addNamed", "addStatement", "addCode", "beginControlFlow", "of")
+private val KDOC_METHODS = setOf("addKdoc")
 
-    private fun KaType.asFqNameOrNull(): String? = (this as? KaClassType)?.classId?.asSingleFqName()?.asString()
+private fun KaType.asFqNameOrNull(): String? = (this as? KaClassType)?.classId?.asSingleFqName()?.asString()
 
-    private fun isKotlinPoetTarget(methodName: String, receiverType: KaType): Boolean {
-        if (receiverType.isKotlinPoetBuilder()) return true
-        val fqName = receiverType.asFqNameOrNull()
-        if (fqName?.startsWith("com.squareup.kotlinpoet.") == true) {
-            return methodName in KDOC_METHODS || methodName in FORMAT_METHODS
-        }
-        return false
+private fun isKotlinPoetTarget(methodName: String, receiverType: KaType): Boolean {
+    if (receiverType.isKotlinPoetBuilder()) return true
+    val fqName = receiverType.asFqNameOrNull()
+    if (fqName?.startsWith("com.squareup.kotlinpoet.") == true) {
+        return methodName in KDOC_METHODS || methodName in FORMAT_METHODS
     }
+    return false
+}
+
+/** Checks if a given type matches any of the known KotlinPoet builders that delegate to CodeBlock. */
+private fun KaType.isKotlinPoetBuilder(): Boolean {
+    // Check hierarchy or exact match
+    if (this is KaClassType) {
+        if (this.classId in Constants.ClassIds.ALL) return true
+        val fqName = this.classId.asSingleFqName().asString()
+        if (fqName.startsWith("com.squareup.kotlinpoet.") && fqName.endsWith(".Builder")) return true
+    }
+
+    // TODO: Considerar verificar supertipos si KotlinPoet usa herencia para estos builders
+    return false
 }

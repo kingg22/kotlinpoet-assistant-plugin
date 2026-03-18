@@ -60,6 +60,12 @@ data class FormatTextSegment(val text: String, val range: IntRange, val kind: Se
     init {
         require(text.isNotEmpty()) { "Segment text must not be empty" }
     }
+
+    constructor(text: String, start: Int, end: Int, kind: SegmentKind = SegmentKind.LITERAL) : this(
+        text,
+        start..<end,
+        kind,
+    )
 }
 
 enum class SegmentKind { LITERAL, DYNAMIC }
