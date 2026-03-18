@@ -11,7 +11,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
-import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.parentOfType
 import com.intellij.util.ExceptionUtil
 import io.github.kingg22.kotlinpoet.assistant.domain.extractor.extractMapEntry
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
@@ -40,8 +40,7 @@ class KotlinPoetReferenceProvider : PsiSymbolReferenceProvider {
 
         // El contexto completo: CodeBlock.of("...", arg1, arg2)
         if (!isFirstArgument(element)) return emptyList()
-        val call = PsiTreeUtil.getParentOfType(element, KtCallExpression::class.java)
-            ?: return emptyList()
+        val call = element.parentOfType<KtCallExpression>() ?: return emptyList()
 
         try {
             val boundPlaceholders = getCachedAnalysis(call)
@@ -112,10 +111,8 @@ class KotlinPoetReferenceProvider : PsiSymbolReferenceProvider {
 }
 
 private fun isFirstArgument(element: PsiElement): Boolean {
-    val valueArgument = PsiTreeUtil.getParentOfType(element, KtValueArgument::class.java)
-        ?: return false
-    val valueArgumentList = PsiTreeUtil.getParentOfType(valueArgument, KtValueArgumentList::class.java)
-        ?: return false
+    val valueArgument = element.parentOfType<KtValueArgument>() ?: return false
+    val valueArgumentList = valueArgument.parentOfType<KtValueArgumentList>() ?: return false
     return valueArgumentList.arguments.indexOf(valueArgument) == 0
 }
 
@@ -146,7 +143,7 @@ private fun resolvePsiTarget(
     if (value.isNamed) {
         val span = value.span?.singleRangeOrNull() ?: return null
         val element = call.containingFile.findElementAt(span.first) ?: return null
-        return PsiTreeUtil.getParentOfType(element, KtExpression::class.java, false)
+        return element.parentOfType<KtExpression>(withSelf = true)
             ?.takeIf { it.textRange.startOffset >= span.first && it.textRange.endOffset <= span.last + 1 }
     }
     val index = value.index

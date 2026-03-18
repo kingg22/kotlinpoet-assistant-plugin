@@ -7,7 +7,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.parentOfType
 import com.intellij.util.ExceptionUtil
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.looksLikeKotlinPoetCall
@@ -27,15 +27,9 @@ class KotlinPoetTypedHandler : TypedHandlerDelegate() {
 
             val element = psiFile.findElementAt(offset - 1) ?: return Result.CONTINUE
 
-            val stringExpr = PsiTreeUtil.getParentOfType(
-                element,
-                KtStringTemplateExpression::class.java,
-            ) ?: return Result.CONTINUE
+            val stringExpr = element.parentOfType<KtStringTemplateExpression>() ?: return Result.CONTINUE
 
-            val call = PsiTreeUtil.getParentOfType(
-                stringExpr,
-                KtCallExpression::class.java,
-            ) ?: return Result.CONTINUE
+            val call = stringExpr.parentOfType<KtCallExpression>() ?: return Result.CONTINUE
 
             val kotlinPoetCallAnalysis = getCachedAnalysis(call)
             if (kotlinPoetCallAnalysis != null) return Result.CONTINUE

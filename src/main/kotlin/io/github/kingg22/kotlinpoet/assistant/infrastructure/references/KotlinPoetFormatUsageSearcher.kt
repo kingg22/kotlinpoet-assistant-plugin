@@ -9,7 +9,7 @@ import com.intellij.model.psi.PsiSymbolReferenceHints
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.childrenOfType
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
@@ -35,7 +35,7 @@ class KotlinPoetFormatUsageSearcher : UsageSearcher {
         arg: KtExpression,
     ): List<Usage> {
         // 1. Obtenemos todas las referencias que el provider genera para todos los string templates
-        val hosts = PsiTreeUtil.findChildrenOfType(formatExpr, KtStringTemplateExpression::class.java)
+        val hosts = formatExpr.childrenOfType<KtStringTemplateExpression>()
         if (hosts.isEmpty()) return listOf(PsiElementUsage(arg))
 
         val allRefs = hosts.flatMap { host ->

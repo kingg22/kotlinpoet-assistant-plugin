@@ -6,7 +6,7 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiFile
-import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.parentOfType
 import com.intellij.util.ExceptionUtil
 import com.intellij.util.ThreeState
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.looksLikeKotlinPoetCall
@@ -25,15 +25,9 @@ class KotlinPoetCompletionConfidence : CompletionConfidence() {
         try {
             val element = psiFile.findElementAt(offset - 1) ?: return ThreeState.UNSURE
 
-            val stringExpr = PsiTreeUtil.getParentOfType(
-                element,
-                KtStringTemplateExpression::class.java,
-            ) ?: return ThreeState.UNSURE
+            val stringExpr = element.parentOfType<KtStringTemplateExpression>() ?: return ThreeState.UNSURE
 
-            val call = PsiTreeUtil.getParentOfType(
-                stringExpr,
-                KtCallExpression::class.java,
-            ) ?: return ThreeState.UNSURE
+            val call = stringExpr.parentOfType<KtCallExpression>() ?: return ThreeState.UNSURE
 
             // PSI ONLY — nada de Analysis API aquí
             if (!call.looksLikeKotlinPoetCall()) return ThreeState.UNSURE

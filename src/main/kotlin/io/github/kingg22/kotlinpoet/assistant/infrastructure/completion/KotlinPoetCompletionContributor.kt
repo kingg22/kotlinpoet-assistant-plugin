@@ -14,7 +14,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.patterns.PlatformPatterns.psiElement
 import com.intellij.patterns.PsiElementPattern
 import com.intellij.psi.PsiElement
-import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.parentOfType
 import com.intellij.util.ExceptionUtil
 import com.intellij.util.ProcessingContext
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
@@ -65,14 +65,11 @@ class KotlinPoetCompletionContributor :
         ) {
             try {
                 // 1. Verificar si realmente estamos en un contexto de KotlinPoet (usando tu Extractor)
-                val hostString = PsiTreeUtil.getParentOfType(
-                    parameters.position,
-                    KtStringTemplateExpression::class.java,
-                ) ?: run {
+                val hostString = parameters.position.parentOfType<KtStringTemplateExpression>() ?: run {
                     logger.trace("Skipping completion inside non-string expression: ${parameters.position.text}")
                     return
                 }
-                val call = PsiTreeUtil.getParentOfType(hostString, KtCallExpression::class.java) ?: run {
+                val call = hostString.parentOfType<KtCallExpression>() ?: run {
                     logger.trace("Skipping completion inside non-call expression: ${hostString.text}")
                     return
                 }

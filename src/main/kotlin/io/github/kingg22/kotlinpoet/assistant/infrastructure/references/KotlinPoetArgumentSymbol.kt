@@ -10,7 +10,7 @@ import com.intellij.openapi.project.Project
 import com.intellij.platform.backend.navigation.NavigationTarget
 import com.intellij.platform.backend.presentation.TargetPresentation
 import com.intellij.psi.SmartPointerManager
-import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.parentOfType
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
 
@@ -38,7 +38,7 @@ data class KotlinPoetArgumentSymbol(val expression: KtExpression) :
     )
 
     fun getFormatExpression(): KtExpression? {
-        val callExpression = PsiTreeUtil.getParentOfType(expression, KtCallExpression::class.java) ?: return null
+        val callExpression = expression.parentOfType<KtCallExpression>() ?: return null
         // Normalmente en KotlinPoet (addCode, addStatement), el primer argumento es el formato
         val firstArg = callExpression.valueArguments.firstOrNull()?.getArgumentExpression()
         return firstArg
