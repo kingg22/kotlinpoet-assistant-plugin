@@ -49,10 +49,11 @@ dependencies {
     // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-faq.html?from=jetbrains.org#junit5-test-framework-refers-to-junit4
     testCompileOnly(libs.junit4)
     testImplementation(platform(libs.junit5.bom))
-    testImplementation("org.junit.jupiter:junit-jupiter-api")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
+    testImplementation(libs.junit5.api)
+    testImplementation(libs.junit5.parametrized)
+    testRuntimeOnly(libs.junit5.engine)
+    testRuntimeOnly(libs.junit.platform)
+    testRuntimeOnly(libs.junit.vintage.engine)
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
@@ -195,6 +196,10 @@ spotless {
         importOrder("", "java", "javax", "\\#")
         formatAnnotations()
     }
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 tasks.publishPlugin {
