@@ -26,7 +26,7 @@ fun putCachedAnalysis(call: KtCallExpression, kotlinPoetAnalysis: KotlinPoetAnal
     }
 }
 
-fun getCachedAnalysis(call: KtCallExpression?): KotlinPoetAnalysis? {
+fun getCachedAnalysis(call: KtCallExpression?, extractOnMissing: Boolean = true): KotlinPoetAnalysis? {
     if (call == null) return null
     val project = call.project
     val manager = CachedValuesManager.getManager(project) ?: return null
@@ -38,7 +38,7 @@ fun getCachedAnalysis(call: KtCallExpression?): KotlinPoetAnalysis? {
                 null
             } else {
                 try {
-                    FormatContextExtractorRegistry.extract(call)
+                    if (extractOnMissing) FormatContextExtractorRegistry.extract(call) else null
                 } catch (e: Exception) {
                     if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
                     logger.warn("Error extracting kotlinpoet call", e)

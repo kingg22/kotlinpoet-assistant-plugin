@@ -31,7 +31,7 @@ class KotlinPoetTypedHandler : TypedHandlerDelegate() {
 
             val call = stringExpr.parentOfType<KtCallExpression>() ?: return Result.CONTINUE
 
-            val kotlinPoetCallAnalysis = getCachedAnalysis(call)
+            val kotlinPoetCallAnalysis = getCachedAnalysis(call, false)
             if (kotlinPoetCallAnalysis != null) return Result.CONTINUE
             if (!call.looksLikeKotlinPoetCall()) return Result.CONTINUE
 
