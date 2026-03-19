@@ -74,7 +74,7 @@ abstract class AbstractKotlinPoetInspection :
     protected fun FormatProblem.register(
         expression: KtCallExpression,
         holder: ProblemsHolder,
-        vararg fixes: LocalQuickFix,
+        fixes: Array<out LocalQuickFix> = emptyArray(),
     ) {
         val highlightType = severity.toHighlightType()
 

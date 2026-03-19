@@ -29,7 +29,7 @@ class NamedCaseInspection : AbstractKotlinPoetInspection() {
 
     override fun checkCall(expression: KtCallExpression, analysis: KotlinPoetAnalysis, holder: ProblemsHolder) {
         validator.validate(analysis.bounds, analysis.argumentSource).forEach { problem ->
-            problem.register(expression, holder, RenameToLowercaseQuickFix(problem.data as String))
+            problem.register(expression, holder, arrayOf(RenameToLowercaseQuickFix(problem.data as String)))
         }
     }
 }

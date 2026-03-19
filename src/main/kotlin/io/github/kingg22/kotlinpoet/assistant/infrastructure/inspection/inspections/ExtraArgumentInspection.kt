@@ -31,7 +31,7 @@ class ExtraArgumentInspection : AbstractKotlinPoetInspection() {
     override fun checkCall(expression: KtCallExpression, analysis: KotlinPoetAnalysis, holder: ProblemsHolder) {
         validator.validate(analysis.bounds, analysis.argumentSource).forEach { problem ->
             val fix = buildFix(expression, problem.target)
-            problem.register(expression, holder, *fix)
+            problem.register(expression, holder, fix)
         }
     }
 
@@ -40,7 +40,7 @@ class ExtraArgumentInspection : AbstractKotlinPoetInspection() {
      * back to a concrete [org.jetbrains.kotlin.psi.KtValueArgument] in the PSI argument list, so
      * [RemoveExtraArgumentQuickFix] knows which argument to delete.
      */
-    private fun buildFix(expression: KtCallExpression, target: ProblemTarget): Array<RemoveExtraArgumentQuickFix> {
+    private fun buildFix(expression: KtCallExpression, target: ProblemTarget): Array<out RemoveExtraArgumentQuickFix> {
         val span = (target as? ProblemTarget.Argument)?.span ?: return emptyArray()
         val ranges = span.toTextRanges()
         val argIndex = expression.valueArguments.indexOfFirst { arg ->
