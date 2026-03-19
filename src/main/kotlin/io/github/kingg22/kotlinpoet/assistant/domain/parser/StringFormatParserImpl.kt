@@ -14,8 +14,6 @@ import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemSeverity
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemTarget
 import org.jetbrains.annotations.Nls
 
-private val NAMED_ARGUMENT_PATTERN = "%([\\w_]+):(\\w)".toPattern()
-
 /**
  * Parses a KotlinPoet format string from a [FormatText] (PSI-backed, segmented).
  *
