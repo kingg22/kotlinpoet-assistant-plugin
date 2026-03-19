@@ -4,33 +4,39 @@ import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
+import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding.Named
+import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding.Positional
+import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding.Relative
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
 /**
- * `%name:X` → `%1X`, `%2X`, … (1-based, in order of appearance in the format string).
+ * Converts placeholders to positional style: `%name:X` / `%X` → `%1X`, `%2X`, …
  *
- * No live template — indices are deterministic.
- * Caret lands inside the closing `)` of the call's argument list.
+ * Uses Path B of [AbstractMixedStyleFix] (live template). Each placeholder token becomes
+ * an editable template variable pre-filled with `%1X`, `%2X`, … The user can adjust the
+ * indices before committing with Tab/Enter.
+ *
+ * On cancel: caret moves inside the closing `)` of the argument list.
  */
 class ConvertToPositionalPlaceholderQuickFix(placeholders: List<PlaceholderSpec>) :
     AbstractMixedStyleFix(placeholders) {
 
     override fun getName(): String = KPoetAssistantBundle.getMessage("quickfix.mixed.convert.to.positional")
 
-    override fun buildRewrite(
+    override fun buildAnchors(
         project: Project,
         call: KtCallExpression,
         formatArg: KtStringTemplateExpression,
-    ): Pair<String, List<TemplateAnchor>>? {
-        val named = placeholders.filter { it.binding is PlaceholderSpec.PlaceholderBinding.Named }
-        if (named.isEmpty()) return null
-        val transforms = named.mapIndexedNotNull { idx, p ->
-            val r = p.span.singleRangeOrNull() ?: return@mapIndexedNotNull null
-            Triple(r.first, r.last + 1, "%${idx + 1}${p.kind.value}")
+    ): List<TemplateAnchor> {
+        val toConvert = placeholders.filter {
+            it.binding is Named || it.binding is Relative || it.binding is Positional
         }
-        if (transforms.isEmpty()) return null
-        return Pair(applyReversedTransforms(formatArg, transforms), emptyList())
+
+        val varNames = toConvert.indices.map { "idx$it" }
+        val defaults = toConvert.mapIndexed { idx, p -> "%${idx + 1}${p.kind.value}" }
+
+        return buildAnchorsForPlaceholders(toConvert, formatArg, defaults, varNames)
     }
 
     override fun afterRewrite(
@@ -38,7 +44,7 @@ class ConvertToPositionalPlaceholderQuickFix(placeholders: List<PlaceholderSpec>
         editor: Editor,
         call: KtCallExpression,
         freshFormatArg: KtStringTemplateExpression,
-        anchors: List<TemplateAnchor>,
+        committed: Boolean,
     ) {
         val argListEnd = call.valueArgumentList?.textRange?.endOffset ?: return
         editor.caretModel.moveToOffset(argListEnd - 1)

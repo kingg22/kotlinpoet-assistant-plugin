@@ -3,6 +3,7 @@ package io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspect
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemsHolder
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
+import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel.FormatStyle
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel.FormatStyle.Mixed
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel.FormatStyle.Named
@@ -54,11 +55,9 @@ class FormatSyntaxInspection : AbstractKotlinPoetInspection() {
         // (The base class already skipped if haveFormatProblems, so we override that guard below.)
         analysis.format.errors.forEach { problem ->
             val fixes = when (problem.kind) {
-                DANGLING_PERCENT ->
-                    arrayOf(EscapePercentQuickFix(), RemoveFormatTokenQuickFix())
+                DANGLING_PERCENT -> arrayOf(EscapePercentQuickFix(), RemoveFormatTokenQuickFix())
 
-                UNKNOWN_PLACEHOLDER_TYPE ->
-                    arrayOf(RemoveFormatTokenQuickFix())
+                UNKNOWN_PLACEHOLDER_TYPE -> arrayOf(RemoveFormatTokenQuickFix())
 
                 INVALID_POSITIONAL_INDEX -> {
                     // INVALID_POSITIONAL_INDEX with format char payload
@@ -66,11 +65,15 @@ class FormatSyntaxInspection : AbstractKotlinPoetInspection() {
                     arrayOf(FixPositionalIndexQuickFix(formatChar))
                 }
 
-                MIXED_STYLES -> buildMixFixes(analysis.formatStyle, analysis.format.placeholders)
+                MIXED_STYLES -> buildMixFixes(
+                    analysis.formatStyle,
+                    analysis.format.placeholders,
+                    analysis.argumentSource as? ArgumentSource.NamedMap?,
+                )
 
                 null -> emptyArray()
             }
-            problem.register(expression, holder, *fixes)
+            problem.register(expression, holder, fixes)
         }
     }
 
@@ -82,8 +85,9 @@ class FormatSyntaxInspection : AbstractKotlinPoetInspection() {
     private fun buildMixFixes(
         actualStyle: FormatStyle,
         placeholders: List<PlaceholderSpec>,
+        namedArgument: ArgumentSource.NamedMap?,
     ): Array<out LocalQuickFix> {
-        val toNamed = ConvertToNamedPlaceholderQuickFix(placeholders)
+        val toNamed = ConvertToNamedPlaceholderQuickFix(placeholders, namedArgument)
         val toRelative = ConvertToRelativePlaceholderQuickFix(placeholders)
         val toPositional = ConvertToPositionalPlaceholderQuickFix(placeholders)
 

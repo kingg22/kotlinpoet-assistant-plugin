@@ -3,6 +3,20 @@ package io.github.kingg22.kotlinpoet.assistant.domain.model
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
 
 data class PlaceholderSpec(val kind: FormatKind, val binding: PlaceholderBinding, val span: TextSpan) {
+    /**
+     * Reconstructs the original placeholder token text.
+     *
+     * Examples:
+     * - Relative `%L`     → `"%L"`
+     * - Positional `%2S`  → `"%2S"`
+     * - Named `%food:L`   → `"%food:L"`
+     */
+    fun tokenText(): String = when (val b = binding) {
+        is PlaceholderBinding.Relative -> "%${kind.value}"
+        is PlaceholderBinding.Positional -> "%${b.index1Based}${kind.value}"
+        is PlaceholderBinding.Named -> "%${b.name}:${kind.value}"
+    }
+
     @JvmInline
     value class FormatKind private constructor(val value: Char) {
         companion object {

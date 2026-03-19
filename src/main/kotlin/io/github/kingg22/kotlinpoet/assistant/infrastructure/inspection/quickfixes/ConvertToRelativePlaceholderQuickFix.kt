@@ -8,9 +8,9 @@ import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
 /**
- * `%name:X` → `%X`
+ * `%name:X` → `%X` (named → relative, deterministic, no live template).
  *
- * No live template — conversion is deterministic.
+ * Uses Path A of [AbstractMixedStyleFix]: direct PSI replace + document commit.
  * Caret lands just before the closing quote of the format string.
  */
 class ConvertToRelativePlaceholderQuickFix(placeholders: List<PlaceholderSpec>) : AbstractMixedStyleFix(placeholders) {
@@ -21,14 +21,15 @@ class ConvertToRelativePlaceholderQuickFix(placeholders: List<PlaceholderSpec>) 
         project: Project,
         call: KtCallExpression,
         formatArg: KtStringTemplateExpression,
-    ): Pair<String, List<TemplateAnchor>>? {
+    ): String? {
         val named = placeholders.filter { it.binding is PlaceholderSpec.PlaceholderBinding.Named }
         if (named.isEmpty()) return null
         val transforms = named.mapNotNull { p ->
             val r = p.span.singleRangeOrNull() ?: return@mapNotNull null
             Triple(r.first, r.last + 1, "%${p.kind.value}")
         }
-        return Pair(applyReversedTransforms(formatArg, transforms), emptyList())
+        if (transforms.isEmpty()) return null
+        return applyReversedTransforms(formatArg, transforms)
     }
 
     override fun afterRewrite(
@@ -36,9 +37,10 @@ class ConvertToRelativePlaceholderQuickFix(placeholders: List<PlaceholderSpec>) 
         editor: Editor,
         call: KtCallExpression,
         freshFormatArg: KtStringTemplateExpression,
-        anchors: List<TemplateAnchor>,
+        committed: Boolean,
     ) {
-        val end = freshFormatArg.textRange.endOffset - 1
-        editor.caretModel.moveToOffset(end.coerceAtLeast(freshFormatArg.textRange.startOffset))
+        // Move the caret to the end of the call expression, just before the closing quote.
+        val end = call.textRange.endOffset - 1
+        editor.caretModel.moveToOffset(end.coerceAtLeast(call.textRange.startOffset))
     }
 }

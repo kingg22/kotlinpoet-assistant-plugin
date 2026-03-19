@@ -1,29 +1,35 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.quickfixes
 
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.codeInsight.template.TemplateBuilderImpl
+import com.intellij.codeInsight.template.impl.ConstantNode
 import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
+import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding.Positional
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding.Relative
+import io.github.kingg22.kotlinpoet.assistant.domain.parser.NAMED_ARGUMENT_REGEX
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
 /**
- * `%X` / `%nX` → `%name:X` with an inline live-template for renaming each `name` field.
+ * `%X` / `%nX` → `%name:X` using a live template (Path B of [AbstractMixedStyleFix]).
  *
- * Map argument handling (triggered after the template session via a second `invokeLater`):
- * - Inline `mapOf / mutableMapOf / linkedMapOf`: appends `"name" to TODO("value")` entries;
- *   caret moves to the first `TODO`.
- * - External variable or complex expression: caret moves to that argument.
- * - No second argument present: caret moves inside the closing `)` of the argument list.
+ * Each placeholder token becomes an editable template variable pre-filled with
+ * `%name0:X`, `%name1:X`, … The template engine replaces the tokens in-place.
+ *
+ * After the name template commits, [afterRewrite] inserts map entries for any placeholder
+ * names not already present in [existingNamedMap].
  */
-class ConvertToNamedPlaceholderQuickFix(placeholders: List<PlaceholderSpec>) : AbstractMixedStyleFix(placeholders) {
+class ConvertToNamedPlaceholderQuickFix(
+    placeholders: List<PlaceholderSpec>,
+    private val existingNamedMap: ArgumentSource.NamedMap? = null,
+) : AbstractMixedStyleFix(placeholders) {
 
     override fun getName(): String = KPoetAssistantBundle.getMessage("quickfix.mixed.convert.to.named")
 
@@ -31,29 +37,19 @@ class ConvertToNamedPlaceholderQuickFix(placeholders: List<PlaceholderSpec>) : A
         project: Project,
         call: KtCallExpression,
         formatArg: KtStringTemplateExpression,
-    ): Pair<String, List<TemplateAnchor>>? {
+    ): String? = null
+
+    override fun buildAnchors(
+        project: Project,
+        call: KtCallExpression,
+        formatArg: KtStringTemplateExpression,
+    ): List<TemplateAnchor> {
         val toConvert = placeholders.filter { it.binding is Relative || it.binding is Positional }
-        if (toConvert.isEmpty()) return null
 
-        val fileStart = formatArg.textRange.startOffset
-        val transforms = mutableListOf<Triple<Int, Int, String>>()
-        val anchors = mutableListOf<TemplateAnchor>()
-        var drift = 0
+        val varNames = toConvert.indices.map { "name$it" }
+        val defaults = toConvert.mapIndexed { idx, p -> "%${varNames[idx]}:${p.kind.value}" }
 
-        toConvert.forEachIndexed { idx, placeholder ->
-            val absRange = placeholder.span.singleRangeOrNull() ?: return@forEachIndexed
-            val varName = "name$idx"
-            val replacement = "%$varName:${placeholder.kind.value}"
-            transforms.add(Triple(absRange.first, absRange.last + 1, replacement))
-
-            // +1: skip the leading '%'; drift: account for length changes from prior replacements.
-            val relStart = (absRange.first - fileStart) + 1 + drift
-            val relEnd = relStart + varName.length
-            anchors.add(TemplateAnchor(TextRange(relStart, relEnd), varName, varName))
-            drift += replacement.length - (absRange.last + 1 - absRange.first)
-        }
-
-        return Pair(applyReversedTransforms(formatArg, transforms), anchors)
+        return buildAnchorsForPlaceholders(toConvert, formatArg, defaults, varNames)
     }
 
     override fun afterRewrite(
@@ -61,24 +57,39 @@ class ConvertToNamedPlaceholderQuickFix(placeholders: List<PlaceholderSpec>) : A
         editor: Editor,
         call: KtCallExpression,
         freshFormatArg: KtStringTemplateExpression,
-        anchors: List<TemplateAnchor>,
+        committed: Boolean,
     ) {
-        super.afterRewrite(project, editor, call, freshFormatArg, anchors)
-
-        // Map-entry insertion happens after the template session to avoid interfering with it.
-        ApplicationManager.getApplication().invokeLater {
-            tryInsertMapEntries(project, editor, call, anchors)
-        }
+        if (!committed) return
+        smartInsertMapEntries(project, editor, call, freshFormatArg)
     }
 
-    private fun tryInsertMapEntries(
+    // ── Map-entry insertion ────────────────────────────────────────────────────
+    @Suppress("DialogTitleCapitalization")
+    private fun smartInsertMapEntries(
         project: Project,
         editor: Editor,
         call: KtCallExpression,
-        anchors: List<TemplateAnchor>,
+        postTemplateArg: KtStringTemplateExpression,
     ) {
-        val mapArgExpr = call.valueArguments.getOrNull(1)?.getArgumentExpression()
+        val finalNames = extractFinalPlaceholderNames(postTemplateArg.text)
+        if (finalNames.isEmpty()) return
 
+        val existingKeys: Set<String> = existingNamedMap?.entries?.keys ?: emptySet()
+        val existingSpans: Map<String, Int> = existingNamedMap?.entries
+            ?.mapNotNull { (k, v) -> v.span?.singleRangeOrNull()?.first?.let { k to it } }
+            ?.toMap()
+            ?: emptyMap()
+
+        val newNames = finalNames.filter { it !in existingKeys }
+        val existingHits = finalNames.filter { it in existingKeys }
+
+        if (newNames.isEmpty()) {
+            val offset = existingHits.mapNotNull { existingSpans[it] }.minOrNull()
+            if (offset != null) editor.caretModel.moveToOffset(offset + 1)
+            return
+        }
+
+        val mapArgExpr = call.valueArguments.getOrNull(1)?.getArgumentExpression()
         if (mapArgExpr == null) {
             val listEnd = call.valueArgumentList?.textRange?.endOffset ?: return
             editor.caretModel.moveToOffset(listEnd - 1)
@@ -86,8 +97,7 @@ class ConvertToNamedPlaceholderQuickFix(placeholders: List<PlaceholderSpec>) : A
         }
 
         val mapCall = mapArgExpr as? KtCallExpression
-        val isInlineMap = mapCall?.calleeExpression?.text in setOf("mapOf", "mutableMapOf", "linkedMapOf", "hashMapOf")
-
+        val isInlineMap = mapCall?.calleeExpression?.text in INLINE_MAP_BUILDERS
         if (!isInlineMap) {
             editor.caretModel.moveToOffset(mapArgExpr.textRange.startOffset)
             return
@@ -100,17 +110,48 @@ class ConvertToNamedPlaceholderQuickFix(placeholders: List<PlaceholderSpec>) : A
         }
 
         WriteCommandAction.runWriteCommandAction(project, name, familyName, {
-            anchors.forEachIndexed { idx, anchor ->
-                argList.addArgument(factory.createArgument("\"${anchor.defaultValue}\" to \"value$idx\""))
+            newNames.forEachIndexed { idx, entryName ->
+                argList.addArgument(factory.createArgument("\"$entryName\" to $SENTINEL_PREFIX$idx"))
             }
             PsiDocumentManager.getInstance(project).commitDocument(editor.document)
         })
 
-        ApplicationManager.getApplication().invokeLater {
-            val firstTodo = call.text.indexOf("\"value0\"")
-            if (firstTodo >= 0) {
-                editor.caretModel.moveToOffset(call.textRange.startOffset + firstTodo)
-            }
+        val freshMapCall = call.valueArguments.getOrNull(1)?.getArgumentExpression()
+            as? KtCallExpression ?: return
+
+        val builder = TemplateBuilderImpl(freshMapCall)
+        val mapText = freshMapCall.text
+        var foundAny = false
+
+        newNames.forEachIndexed { idx, _ ->
+            val sentinel = "$SENTINEL_PREFIX$idx"
+            val pos = mapText.indexOf(sentinel)
+            if (pos < 0) return@forEachIndexed
+            builder.replaceRange(
+                TextRange(pos, pos + sentinel.length),
+                "value$idx",
+                ConstantNode("value"),
+                true,
+            )
+            foundAny = true
         }
+
+        if (!foundAny) return
+
+        WriteCommandAction.runWriteCommandAction(project, name, familyName, {
+            builder.run(editor, true)
+        })
     }
 }
+
+private fun extractFinalPlaceholderNames(formatExprText: String): List<String> {
+    val inner = formatExprText.removeSurrounding("\"\"\"").removeSurrounding("\"")
+    return NAMED_ARGUMENT_REGEX.findAll(inner)
+        .map { it.groupValues[1] }
+        .distinct()
+        .toList()
+}
+
+private val INLINE_MAP_BUILDERS = setOf("mapOf", "mutableMapOf", "linkedMapOf", "hashMapOf")
+
+private const val SENTINEL_PREFIX = "__kpv"
