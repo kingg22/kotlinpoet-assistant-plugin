@@ -52,6 +52,18 @@ fun applyReversedTransforms(
     return text
 }
 
+fun buildAnchorsForPlaceholders(
+    placeholders: List<PlaceholderSpec>,
+    formatArg: KtStringTemplateExpression,
+    defaultValues: List<String>,
+    variableNames: List<String>,
+): List<AbstractMixedStyleFix.TemplateAnchor> = buildAnchorsForPlaceholders(
+    placeholders,
+    formatArg.text,
+    defaultValues,
+    variableNames,
+)
+
 /**
  * Builds [AbstractMixedStyleFix.TemplateAnchor]s for all [placeholders] inside [formatArg],
  * pairing each with its [defaultValues] and [variableNames] by index.
@@ -77,7 +89,7 @@ fun applyReversedTransforms(
  */
 fun buildAnchorsForPlaceholders(
     placeholders: List<PlaceholderSpec>,
-    formatArg: KtStringTemplateExpression,
+    elementText: String,
     defaultValues: List<String>,
     variableNames: List<String>,
 ): List<AbstractMixedStyleFix.TemplateAnchor> {
@@ -86,7 +98,6 @@ fun buildAnchorsForPlaceholders(
             "got ${placeholders.size} placeholders with ${variableNames.size} variables and ${defaultValues.size} default values"
     }
 
-    val elementText = formatArg.text
     var searchFrom = 0
 
     return placeholders.mapIndexedNotNull { idx, placeholder ->
