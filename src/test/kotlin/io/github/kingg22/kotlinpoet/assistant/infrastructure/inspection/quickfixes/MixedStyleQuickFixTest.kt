@@ -1,4 +1,4 @@
-package io.github.kingg22.kotlinpoet.assistant
+package io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.quickfixes
 
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.BasePlatformTestCase

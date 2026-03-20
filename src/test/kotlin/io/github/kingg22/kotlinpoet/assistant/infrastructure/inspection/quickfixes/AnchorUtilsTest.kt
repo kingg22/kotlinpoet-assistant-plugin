@@ -1,15 +1,9 @@
-package io.github.kingg22.kotlinpoet.assistant
+package io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.quickfixes
 
 import com.intellij.openapi.util.TextRange
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
-import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.FormatKind
-import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.quickfixes.buildAnchorsForPlaceholders
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -33,18 +27,18 @@ class AnchorUtilsTest {
 
     // ── DSL helpers ────────────────────────────────────────────────────────────
 
-    private fun relative(kind: FormatKind): PlaceholderSpec =
-        PlaceholderSpec(kind, PlaceholderBinding.Relative, TextSpan.of(0..1))
+    private fun relative(kind: PlaceholderSpec.FormatKind): PlaceholderSpec =
+        PlaceholderSpec(kind, PlaceholderSpec.PlaceholderBinding.Relative, TextSpan.of(0..1))
 
-    private fun positional(kind: FormatKind, index: Int): PlaceholderSpec =
-        PlaceholderSpec(kind, PlaceholderBinding.Positional(index), TextSpan.of(0..1))
+    private fun positional(kind: PlaceholderSpec.FormatKind, index: Int): PlaceholderSpec =
+        PlaceholderSpec(kind, PlaceholderSpec.PlaceholderBinding.Positional(index), TextSpan.of(0..1))
 
-    private fun named(kind: FormatKind, name: String): PlaceholderSpec =
-        PlaceholderSpec(kind, PlaceholderBinding.Named(name), TextSpan.of(0..1))
+    private fun named(kind: PlaceholderSpec.FormatKind, name: String): PlaceholderSpec =
+        PlaceholderSpec(kind, PlaceholderSpec.PlaceholderBinding.Named(name), TextSpan.of(0..1))
 
     /** Multi-range span — should be skipped by buildAnchorsForPlaceholders. */
-    private fun multiSpan(kind: FormatKind): PlaceholderSpec =
-        PlaceholderSpec(kind, PlaceholderBinding.Relative, TextSpan(listOf(0..1, 5..6)))
+    private fun multiSpan(kind: PlaceholderSpec.FormatKind): PlaceholderSpec =
+        PlaceholderSpec(kind, PlaceholderSpec.PlaceholderBinding.Relative, TextSpan(listOf(0..1, 5..6)))
 
     private fun anchors(
         placeholders: List<PlaceholderSpec>,
@@ -58,67 +52,70 @@ class AnchorUtilsTest {
 
         @Test
         fun `relative L`() {
-            assertEquals("%L", relative(FormatKind.LITERAL).tokenText())
+            Assertions.assertEquals("%L", relative(PlaceholderSpec.FormatKind.LITERAL).tokenText())
         }
 
         @Test
         fun `relative S`() {
-            assertEquals("%S", relative(FormatKind.STRING).tokenText())
+            Assertions.assertEquals("%S", relative(PlaceholderSpec.FormatKind.STRING).tokenText())
         }
 
         @Test
         fun `relative T`() {
-            assertEquals("%T", relative(FormatKind.TYPE).tokenText())
+            Assertions.assertEquals("%T", relative(PlaceholderSpec.FormatKind.TYPE).tokenText())
         }
 
         @Test
         fun `relative N`() {
-            assertEquals("%N", relative(FormatKind.NAME).tokenText())
+            Assertions.assertEquals("%N", relative(PlaceholderSpec.FormatKind.NAME).tokenText())
         }
 
         @Test
         fun `relative M`() {
-            assertEquals("%M", relative(FormatKind.MEMBER).tokenText())
+            Assertions.assertEquals("%M", relative(PlaceholderSpec.FormatKind.MEMBER).tokenText())
         }
 
         @Test
         fun `relative P`() {
-            assertEquals("%P", relative(FormatKind.STRING_TEMPLATE).tokenText())
+            Assertions.assertEquals("%P", relative(PlaceholderSpec.FormatKind.STRING_TEMPLATE).tokenText())
         }
 
         @Test
         fun `positional index 1 L`() {
-            assertEquals("%1L", positional(FormatKind.LITERAL, 1).tokenText())
+            Assertions.assertEquals("%1L", positional(PlaceholderSpec.FormatKind.LITERAL, 1).tokenText())
         }
 
         @Test
         fun `positional index 2 S`() {
-            assertEquals("%2S", positional(FormatKind.STRING, 2).tokenText())
+            Assertions.assertEquals("%2S", positional(PlaceholderSpec.FormatKind.STRING, 2).tokenText())
         }
 
         @Test
         fun `positional multi-digit index 12 T`() {
-            assertEquals("%12T", positional(FormatKind.TYPE, 12).tokenText())
+            Assertions.assertEquals("%12T", positional(PlaceholderSpec.FormatKind.TYPE, 12).tokenText())
         }
 
         @Test
         fun `named food colon L`() {
-            assertEquals("%food:L", named(FormatKind.LITERAL, "food").tokenText())
+            Assertions.assertEquals("%food:L", named(PlaceholderSpec.FormatKind.LITERAL, "food").tokenText())
         }
 
         @Test
         fun `named count colon S`() {
-            assertEquals("%count:S", named(FormatKind.STRING, "count").tokenText())
+            Assertions.assertEquals("%count:S", named(PlaceholderSpec.FormatKind.STRING, "count").tokenText())
         }
 
         @Test
         fun `named with underscore and digits`() {
-            assertEquals("%my_type123:T", named(FormatKind.TYPE, "my_type123").tokenText())
+            Assertions.assertEquals(
+                "%my_type123:T",
+                named(PlaceholderSpec.FormatKind.TYPE, "my_type123").tokenText(),
+            )
         }
 
         @Test
         fun `named uppercase name round-trips`() {
-            assertEquals("%Food:L", named(FormatKind.LITERAL, "Food").tokenText())
+            Assertions.assertEquals("%Food:L", named(PlaceholderSpec.FormatKind.LITERAL, "Food").tokenText())
         }
     }
 
@@ -129,62 +126,65 @@ class AnchorUtilsTest {
         fun `single relative token inside quoted string`() {
             // formatArg.text for "hello %L" → "\"hello %L\""
             val result = anchors(
-                listOf(relative(FormatKind.LITERAL)),
+                listOf(relative(PlaceholderSpec.FormatKind.LITERAL)),
                 elementText = "\"hello %L\"",
                 defaults = listOf("%name0:L"),
                 vars = listOf("name0"),
             )
 
-            assertEquals(1, result.size)
+            Assertions.assertEquals(1, result.size)
             val anchor = result.first()
-            assertEquals(TextRange(7, 9), anchor.rangeInElement) // %L at index 7, length 2
-            assertEquals("name0", anchor.variableName)
-            assertEquals("%name0:L", anchor.defaultValue)
+            Assertions.assertEquals(TextRange(7, 9), anchor.rangeInElement) // %L at index 7, length 2
+            Assertions.assertEquals("name0", anchor.variableName)
+            Assertions.assertEquals("%name0:L", anchor.defaultValue)
         }
 
         @Test
         fun `single named token inside quoted string`() {
             // formatArg.text for "%food:L" → "\"%food:L\""
             val result = anchors(
-                listOf(named(FormatKind.LITERAL, "food")),
+                listOf(named(PlaceholderSpec.FormatKind.LITERAL, "food")),
                 elementText = "\"%food:L\"",
                 defaults = listOf("%name0:L"),
                 vars = listOf("name0"),
             )
 
-            assertEquals(1, result.size)
+            Assertions.assertEquals(1, result.size)
             val anchor = result.first()
-            assertEquals(TextRange(1, 8), anchor.rangeInElement) // %food:L = 7 chars at index 1
-            assertEquals("%name0:L", anchor.defaultValue)
+            Assertions.assertEquals(TextRange(1, 8), anchor.rangeInElement) // %food:L = 7 chars at index 1
+            Assertions.assertEquals("%name0:L", anchor.defaultValue)
         }
 
         @Test
         fun `single positional token`() {
             // formatArg.text for "result %2S end" → "\"result %2S end\""
             val result = anchors(
-                listOf(positional(FormatKind.STRING, 2)),
+                listOf(positional(PlaceholderSpec.FormatKind.STRING, 2)),
                 elementText = "\"result %2S end\"",
                 defaults = listOf("%1S"),
                 vars = listOf("idx0"),
             )
 
-            assertEquals(1, result.size)
-            assertEquals(TextRange(8, 11), result.first().rangeInElement) // %2S = 3 chars at index 8
+            Assertions.assertEquals(1, result.size)
+            Assertions.assertEquals(TextRange(8, 11), result.first().rangeInElement) // %2S = 3 chars at index 8
         }
 
         @Test
         fun `two distinct tokens are located independently`() {
             // formatArg.text for "val %S = %L\n" → "\"val %S = %L\\n\""
             val result = anchors(
-                listOf(relative(FormatKind.STRING), relative(FormatKind.LITERAL)),
+                listOf(
+                    relative(PlaceholderSpec.FormatKind.STRING),
+                    relative(PlaceholderSpec.FormatKind.LITERAL),
+                ),
                 elementText = "\"val %S = %L\\n\"",
                 defaults = listOf("%name0:S", "%name1:L"),
                 vars = listOf("name0", "name1"),
             )
 
-            assertEquals(2, result.size)
-            assertEquals(TextRange(5, 7), result[0].rangeInElement) // %S at index 5
-            assertEquals(TextRange(10, 12), result[1].rangeInElement) // %L at index 10
+            Assertions.assertEquals(2, result.size)
+            Assertions.assertEquals(TextRange(5, 7), result[0].rangeInElement) // %S at index 5
+            Assertions.assertEquals(TextRange(10, 12), result[1].rangeInElement) // %L at index 10
         }
 
         @Test
@@ -192,49 +192,49 @@ class AnchorUtilsTest {
             // formatArg.text for "%T %N %L" → "\"%T %N %L\""
             val result = anchors(
                 listOf(
-                    relative(FormatKind.TYPE),
-                    relative(FormatKind.NAME),
-                    relative(FormatKind.LITERAL),
+                    relative(PlaceholderSpec.FormatKind.TYPE),
+                    relative(PlaceholderSpec.FormatKind.NAME),
+                    relative(PlaceholderSpec.FormatKind.LITERAL),
                 ),
                 elementText = "\"%T %N %L\"",
                 defaults = listOf("%name0:T", "%name1:N", "%name2:L"),
                 vars = listOf("name0", "name1", "name2"),
             )
 
-            assertEquals(3, result.size)
-            assertEquals(TextRange(1, 3), result[0].rangeInElement) // %T
-            assertEquals(TextRange(4, 6), result[1].rangeInElement) // %N
-            assertEquals(TextRange(7, 9), result[2].rangeInElement) // %L
+            Assertions.assertEquals(3, result.size)
+            Assertions.assertEquals(TextRange(1, 3), result[0].rangeInElement) // %T
+            Assertions.assertEquals(TextRange(4, 6), result[1].rangeInElement) // %N
+            Assertions.assertEquals(TextRange(7, 9), result[2].rangeInElement) // %L
         }
 
         @Test
         fun `raw triple-quoted string offset is correct`() {
             // formatArg.text for """hello %L""" → "\"\"\"hello %L\"\"\""  (3+5+2+3 = 13 chars)
             val result = anchors(
-                listOf(relative(FormatKind.LITERAL)),
+                listOf(relative(PlaceholderSpec.FormatKind.LITERAL)),
                 elementText = "\"\"\"hello %L\"\"\"",
                 defaults = listOf("%name0:L"),
                 vars = listOf("name0"),
             )
 
-            assertEquals(1, result.size)
-            assertEquals(TextRange(9, 11), result.first().rangeInElement) // %L after """hello (9 chars)
+            Assertions.assertEquals(1, result.size)
+            Assertions.assertEquals(TextRange(9, 11), result.first().rangeInElement) // %L after """hello (9 chars)
         }
 
         @Test
         fun `anchor range length equals token text length`() {
             val placeholders = listOf(
-                relative(FormatKind.LITERAL), // %L  = 2 chars
-                positional(FormatKind.STRING, 3), // %3S = 3 chars
-                named(FormatKind.TYPE, "myType"), // %myType:T = 9 chars
+                relative(PlaceholderSpec.FormatKind.LITERAL), // %L  = 2 chars
+                positional(PlaceholderSpec.FormatKind.STRING, 3), // %3S = 3 chars
+                named(PlaceholderSpec.FormatKind.TYPE, "myType"), // %myType:T = 9 chars
             )
             val elementText = "\"%L %3S %myType:T\""
             val result = anchors(placeholders, elementText)
 
-            assertEquals(3, result.size)
-            assertEquals(2, result[0].rangeInElement.length) // %L
-            assertEquals(3, result[1].rangeInElement.length) // %3S
-            assertEquals(9, result[2].rangeInElement.length) // %myType:T
+            Assertions.assertEquals(3, result.size)
+            Assertions.assertEquals(2, result[0].rangeInElement.length) // %L
+            Assertions.assertEquals(3, result[1].rangeInElement.length) // %3S
+            Assertions.assertEquals(9, result[2].rangeInElement.length) // %myType:T
         }
     }
 
@@ -244,16 +244,19 @@ class AnchorUtilsTest {
         fun `two identical relative tokens get distinct positions`() {
             // formatArg.text for "%L %L" → "\"%L %L\""
             val result = anchors(
-                listOf(relative(FormatKind.LITERAL), relative(FormatKind.LITERAL)),
+                listOf(
+                    relative(PlaceholderSpec.FormatKind.LITERAL),
+                    relative(PlaceholderSpec.FormatKind.LITERAL),
+                ),
                 elementText = "\"%L %L\"",
                 defaults = listOf("%name0:L", "%name1:L"),
                 vars = listOf("name0", "name1"),
             )
 
-            assertEquals(2, result.size)
-            assertEquals(TextRange(1, 3), result[0].rangeInElement) // first %L
-            assertEquals(TextRange(4, 6), result[1].rangeInElement) // second %L — not re-matched
-            assertTrue(result[0].rangeInElement.startOffset < result[1].rangeInElement.startOffset)
+            Assertions.assertEquals(2, result.size)
+            Assertions.assertEquals(TextRange(1, 3), result[0].rangeInElement) // first %L
+            Assertions.assertEquals(TextRange(4, 6), result[1].rangeInElement) // second %L — not re-matched
+            Assertions.assertTrue(result[0].rangeInElement.startOffset < result[1].rangeInElement.startOffset)
         }
 
         @Test
@@ -261,17 +264,17 @@ class AnchorUtilsTest {
             // formatArg.text for "%L %L %L" → "\"%L %L %L\""
             val result = anchors(
                 listOf(
-                    relative(FormatKind.LITERAL),
-                    relative(FormatKind.LITERAL),
-                    relative(FormatKind.LITERAL),
+                    relative(PlaceholderSpec.FormatKind.LITERAL),
+                    relative(PlaceholderSpec.FormatKind.LITERAL),
+                    relative(PlaceholderSpec.FormatKind.LITERAL),
                 ),
                 elementText = "\"%L %L %L\"",
             )
 
-            assertEquals(3, result.size)
-            assertEquals(TextRange(1, 3), result[0].rangeInElement)
-            assertEquals(TextRange(4, 6), result[1].rangeInElement)
-            assertEquals(TextRange(7, 9), result[2].rangeInElement)
+            Assertions.assertEquals(3, result.size)
+            Assertions.assertEquals(TextRange(1, 3), result[0].rangeInElement)
+            Assertions.assertEquals(TextRange(4, 6), result[1].rangeInElement)
+            Assertions.assertEquals(TextRange(7, 9), result[2].rangeInElement)
         }
 
         @Test
@@ -280,19 +283,19 @@ class AnchorUtilsTest {
             // Placeholders in document order: %L(1), %name:L(4), %L(12)
             val result = anchors(
                 listOf(
-                    relative(FormatKind.LITERAL),
-                    named(FormatKind.LITERAL, "name"),
-                    relative(FormatKind.LITERAL),
+                    relative(PlaceholderSpec.FormatKind.LITERAL),
+                    named(PlaceholderSpec.FormatKind.LITERAL, "name"),
+                    relative(PlaceholderSpec.FormatKind.LITERAL),
                 ),
                 elementText = "\"%L %name:L %L\"",
                 defaults = listOf("%name0:L", "%name1:L", "%name2:L"),
                 vars = listOf("name0", "name1", "name2"),
             )
 
-            assertEquals(3, result.size)
-            assertEquals(TextRange(1, 3), result[0].rangeInElement) // first %L
-            assertEquals(TextRange(4, 11), result[1].rangeInElement) // %name:L (7 chars)
-            assertEquals(TextRange(12, 14), result[2].rangeInElement) // second %L — not re-matched at 1
+            Assertions.assertEquals(3, result.size)
+            Assertions.assertEquals(TextRange(1, 3), result[0].rangeInElement) // first %L
+            Assertions.assertEquals(TextRange(4, 11), result[1].rangeInElement) // %name:L (7 chars)
+            Assertions.assertEquals(TextRange(12, 14), result[2].rangeInElement) // second %L — not re-matched at 1
         }
 
         @Test
@@ -301,17 +304,17 @@ class AnchorUtilsTest {
             // Both need to be located independently.
             val result = anchors(
                 listOf(
-                    positional(FormatKind.STRING, 2),
-                    positional(FormatKind.LITERAL, 1),
+                    positional(PlaceholderSpec.FormatKind.STRING, 2),
+                    positional(PlaceholderSpec.FormatKind.LITERAL, 1),
                 ),
                 elementText = "\"%2S %1L\"",
                 defaults = listOf("%1S", "%2L"),
                 vars = listOf("idx0", "idx1"),
             )
 
-            assertEquals(2, result.size)
-            assertEquals(TextRange(1, 4), result[0].rangeInElement) // %2S = 3 chars
-            assertEquals(TextRange(5, 8), result[1].rangeInElement) // %1L = 3 chars
+            Assertions.assertEquals(2, result.size)
+            Assertions.assertEquals(TextRange(1, 4), result[0].rangeInElement) // %2S = 3 chars
+            Assertions.assertEquals(TextRange(5, 8), result[1].rangeInElement) // %1L = 3 chars
         }
     }
 
@@ -321,28 +324,28 @@ class AnchorUtilsTest {
         fun `empty placeholder list returns empty anchors`() {
             val result =
                 anchors(emptyList(), elementText = "\"hello world\"", defaults = emptyList(), vars = emptyList())
-            assertTrue(result.isEmpty())
+            Assertions.assertTrue(result.isEmpty())
         }
 
         @Test
         fun `placeholder with multi-segment span is skipped`() {
             val result = anchors(
-                listOf(multiSpan(FormatKind.LITERAL)),
+                listOf(multiSpan(PlaceholderSpec.FormatKind.LITERAL)),
                 elementText = "\"%L\"",
             )
-            assertTrue(result.isEmpty(), "Multi-segment span placeholder must be skipped")
+            Assertions.assertTrue(result.isEmpty(), "Multi-segment span placeholder must be skipped")
         }
 
         @Test
         fun `token not found in element text returns no anchor for that placeholder`() {
             // %S is not present in the text — should be skipped gracefully.
             val result = anchors(
-                listOf(relative(FormatKind.STRING)),
+                listOf(relative(PlaceholderSpec.FormatKind.STRING)),
                 elementText = "\"hello %L\"",
                 defaults = listOf("%name0:S"),
                 vars = listOf("name0"),
             )
-            assertTrue(result.isEmpty(), "Token not found must produce no anchor")
+            Assertions.assertTrue(result.isEmpty(), "Token not found must produce no anchor")
         }
 
         @Test
@@ -350,23 +353,23 @@ class AnchorUtilsTest {
             // %S missing, but %L is present — %L anchor must still be produced.
             val result = anchors(
                 listOf(
-                    relative(FormatKind.STRING), // not in text — skipped
-                    relative(FormatKind.LITERAL), // present — must be found
+                    relative(PlaceholderSpec.FormatKind.STRING), // not in text — skipped
+                    relative(PlaceholderSpec.FormatKind.LITERAL), // present — must be found
                 ),
                 elementText = "\"hello %L\"",
                 defaults = listOf("%name0:S", "%name1:L"),
                 vars = listOf("name0", "name1"),
             )
-            assertEquals(1, result.size)
-            assertNotNull(result.firstOrNull())
-            assertEquals("%name1:L", result.first().defaultValue)
+            Assertions.assertEquals(1, result.size)
+            Assertions.assertNotNull(result.firstOrNull())
+            Assertions.assertEquals("%name1:L", result.first().defaultValue)
         }
 
         @Test
         fun `mismatched list sizes throw IllegalStateException`() {
             assertThrows<IllegalStateException> {
                 buildAnchorsForPlaceholders(
-                    placeholders = listOf(relative(FormatKind.LITERAL)),
+                    placeholders = listOf(relative(PlaceholderSpec.FormatKind.LITERAL)),
                     elementText = "\"%L\"",
                     defaultValues = listOf("a", "b"), // size 2 != 1
                     variableNames = listOf("v0"),
@@ -378,35 +381,38 @@ class AnchorUtilsTest {
         fun `anchor ranges are non-overlapping for adjacent tokens`() {
             // formatArg.text for "%L%S" (no space) → "\"%L%S\""
             val result = anchors(
-                listOf(relative(FormatKind.LITERAL), relative(FormatKind.STRING)),
+                listOf(
+                    relative(PlaceholderSpec.FormatKind.LITERAL),
+                    relative(PlaceholderSpec.FormatKind.STRING),
+                ),
                 elementText = "\"%L%S\"",
                 defaults = listOf("%name0:L", "%name1:S"),
                 vars = listOf("name0", "name1"),
             )
-            assertEquals(2, result.size)
+            Assertions.assertEquals(2, result.size)
             val (a0, a1) = result
             // Ranges must not overlap.
-            assertFalse(
+            Assertions.assertFalse(
                 a0.rangeInElement.intersectsStrict(a1.rangeInElement),
                 "Adjacent token anchors must not overlap: ${a0.rangeInElement} vs ${a1.rangeInElement}",
             )
-            assertEquals(TextRange(1, 3), a0.rangeInElement) // %L
-            assertEquals(TextRange(3, 5), a1.rangeInElement) // %S immediately after
+            Assertions.assertEquals(TextRange(1, 3), a0.rangeInElement) // %L
+            Assertions.assertEquals(TextRange(3, 5), a1.rangeInElement) // %S immediately after
         }
 
         @Test
         fun `control symbols in element text do not confuse token search`() {
             // formatArg.text for "«%L»" → "\"«%L»\""
             val result = anchors(
-                listOf(relative(FormatKind.LITERAL)),
+                listOf(relative(PlaceholderSpec.FormatKind.LITERAL)),
                 elementText = "\"«%L»\"",
                 defaults = listOf("%name0:L"),
                 vars = listOf("name0"),
             )
-            assertEquals(1, result.size)
+            Assertions.assertEquals(1, result.size)
             // «  is a 3-byte UTF-8 char but a single Char in Kotlin String (U+00AB).
             // "\"«%L»\"" → index 0=", 1=«, 2=%, 3=L, 4=», 5="
-            assertEquals(TextRange(2, 4), result.first().rangeInElement)
+            Assertions.assertEquals(TextRange(2, 4), result.first().rangeInElement)
         }
     }
 }

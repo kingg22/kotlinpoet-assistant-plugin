@@ -1,11 +1,9 @@
-package io.github.kingg22.kotlinpoet.assistant
+package io.github.kingg22.kotlinpoet.assistant.infrastructure.references
 
 import com.intellij.model.psi.PsiSymbolReferenceHints
 import com.intellij.psi.util.parentOfType
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.references.KotlinPoetArgumentSymbol
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.references.KotlinPoetReferenceProvider
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression

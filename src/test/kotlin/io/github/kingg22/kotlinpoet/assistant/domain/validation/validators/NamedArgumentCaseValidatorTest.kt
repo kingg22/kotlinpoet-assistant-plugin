@@ -1,4 +1,4 @@
-package io.github.kingg22.kotlinpoet.assistant
+package io.github.kingg22.kotlinpoet.assistant.domain.validation.validators
 
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentType
@@ -10,8 +10,6 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.Place
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemSeverity
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemTarget
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.validators.NAMED_ARG_LOWERCASE
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.validators.NamedArgumentCaseValidator
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

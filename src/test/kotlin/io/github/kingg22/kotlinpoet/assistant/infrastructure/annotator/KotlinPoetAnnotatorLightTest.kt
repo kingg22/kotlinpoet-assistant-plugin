@@ -1,9 +1,8 @@
-package io.github.kingg22.kotlinpoet.assistant
+package io.github.kingg22.kotlinpoet.assistant.infrastructure.annotator
 
 import com.intellij.lang.annotation.HighlightSeverity
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.annotator.KotlinPoetHighlightKeys
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 
@@ -28,6 +27,16 @@ class KotlinPoetAnnotatorLightTest : BasePlatformTestCase() {
         val hasReferenceHighlight = highlights.any {
             it.severity == HighlightSeverity.INFORMATION &&
                 it.forcedTextAttributesKey == KotlinPoetHighlightKeys.CONTROL_SYMBOL
+        }
+        assertTrue(hasReferenceHighlight)
+    }
+
+    fun testAddKdocIsRecognized() {
+        myFixture.configureByFile("annotator/AddKdoc.kt")
+        val highlights = allowAnalysisOnEdt { myFixture.doHighlighting() }
+        val hasReferenceHighlight = highlights.any {
+            it.severity == HighlightSeverity.INFORMATION &&
+                it.forcedTextAttributesKey == KotlinPoetHighlightKeys.PLACEHOLDER
         }
         assertTrue(hasReferenceHighlight)
     }

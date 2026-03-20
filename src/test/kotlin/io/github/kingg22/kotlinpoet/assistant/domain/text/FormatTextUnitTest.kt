@@ -1,9 +1,6 @@
-package io.github.kingg22.kotlinpoet.assistant
+package io.github.kingg22.kotlinpoet.assistant.domain.text
 
 import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParserImpl
-import io.github.kingg22.kotlinpoet.assistant.domain.text.FormatText
-import io.github.kingg22.kotlinpoet.assistant.domain.text.FormatTextSegment
-import io.github.kingg22.kotlinpoet.assistant.domain.text.SegmentKind
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

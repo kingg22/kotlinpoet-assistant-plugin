@@ -1,4 +1,4 @@
-package io.github.kingg22.kotlinpoet.assistant
+package io.github.kingg22.kotlinpoet.assistant.domain.validation.validators
 
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentType
@@ -8,8 +8,6 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.FormatKind
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.validators.ExtraArgumentValidator
-import io.github.kingg22.kotlinpoet.assistant.domain.validation.validators.TypeMismatchValidator
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

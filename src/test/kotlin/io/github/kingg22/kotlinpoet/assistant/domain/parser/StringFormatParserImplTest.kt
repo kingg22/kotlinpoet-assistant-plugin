@@ -1,4 +1,4 @@
-package io.github.kingg22.kotlinpoet.assistant
+package io.github.kingg22.kotlinpoet.assistant.domain.parser
 
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol.SymbolType
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel
@@ -6,8 +6,6 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel.For
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel.ParserIssueKind
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.FormatKind
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding
-import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParser
-import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParserImpl
 import io.github.kingg22.kotlinpoet.assistant.domain.text.FormatText
 import io.github.kingg22.kotlinpoet.assistant.domain.text.FormatTextSegment
 import io.github.kingg22.kotlinpoet.assistant.domain.text.SegmentKind

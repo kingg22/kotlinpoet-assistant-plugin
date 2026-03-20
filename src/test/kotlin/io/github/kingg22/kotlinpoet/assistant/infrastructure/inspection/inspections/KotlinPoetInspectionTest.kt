@@ -1,11 +1,7 @@
-package io.github.kingg22.kotlinpoet.assistant
+package io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections
 
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections.ExtraArgumentInspection
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections.MissingArgumentInspection
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections.NamedCaseInspection
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections.TypeMismatchInspection
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 
