@@ -1,4 +1,6 @@
 import com.diffplug.spotless.LineEnding
+import kotlinx.kover.gradle.plugin.dsl.AggregationType
+import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
@@ -156,6 +158,15 @@ kover {
         total {
             xml {
                 onCheck = true
+            }
+            verify {
+                rule("Basic Line Coverage") {
+                    minBound(60, CoverageUnit.LINE, AggregationType.COVERED_PERCENTAGE)
+                }
+
+                rule("Basic Branch Coverage") {
+                    minBound(20, CoverageUnit.BRANCH, AggregationType.COVERED_PERCENTAGE)
+                }
             }
         }
     }
