@@ -77,6 +77,9 @@ intellijPlatform {
     // Doesn't have settings
     // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#buildSearchableOptions
     buildSearchableOptions.set(false)
+    // Kotlin is Null safety, skip instrumentation of nullable java, is not necessary
+    // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#instrumentCode
+    instrumentCode.set(false)
 
     pluginConfiguration {
         name = providers.gradleProperty("pluginName")
