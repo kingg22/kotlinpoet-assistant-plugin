@@ -11,7 +11,7 @@ import org.jetbrains.kotlin.analysis.api.types.KaType
 object ArgumentTypeMapper {
     @JvmStatic
     fun KaSession.map(type: KaType?): ArgumentType {
-        if (type == null) return ArgumentType.Unknown("Type is null")
+        if (type == null) return ArgumentType.NullType
 
         if (type is KaClassType) {
             val fqName = type.classId.asSingleFqName().asString()

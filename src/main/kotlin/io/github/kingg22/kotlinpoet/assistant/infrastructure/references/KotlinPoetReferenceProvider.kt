@@ -146,6 +146,7 @@ private fun resolvePsiTarget(
             ?.takeIf { it.textRange.startOffset >= span.first && it.textRange.endOffset <= span.last + 1 }
     }
     val index = value.index
+    // implies isPositional
     if (index != null && index in psiArgs.indices) {
         return psiArgs[index].getArgumentExpression()
     }

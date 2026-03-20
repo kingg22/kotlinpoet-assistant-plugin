@@ -65,6 +65,7 @@ class TypeMismatchValidator : FormatValidator {
         is ArgumentType.Primitive -> "Primitive"
         is ArgumentType.Class -> type.fqName
         is ArgumentType.Unknown -> "Unknown"
+        is ArgumentType.NullType -> "Null"
     }
 
     private fun isCompatible(expected: Expected, argType: ArgumentType): Boolean = when (expected) {
