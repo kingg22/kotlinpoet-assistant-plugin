@@ -18,7 +18,6 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.psi.PsiDocumentManager
-import com.intellij.psi.PsiElement
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
@@ -35,7 +34,6 @@ import io.github.kingg22.kotlinpoet.assistant.domain.chain.MethodSemantics
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.renderChain
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.KNOWN_BUILDER_CALLS
 import org.jetbrains.kotlin.psi.KtCallExpression
 import java.awt.BorderLayout
 import java.awt.Color
@@ -46,35 +44,24 @@ import javax.swing.JComponent
 import javax.swing.JPanel
 import javax.swing.JTextArea
 import javax.swing.SwingConstants
-import javax.swing.SwingUtilities
 import javax.swing.Timer
 
 /**
  * Factory for the **KotlinPoet Chain** tool window.
  *
- * ## Registration (plugin.xml)
- * ```xml
- * <toolWindow
- *     id="KotlinPoet Chain"
- *     anchor="bottom"
- *     secondary="true"
- *     canCloseContents="false"
- *     factoryClass="...CodeBlockChainToolWindowFactory"/>
- * ```
- *
  * ## Threading model
  *
- * PSI offsets are captured **at event time** inside the caret/document listeners, which
- * already execute in a context where the caret model is accessible. The Swing Timer only
- * holds the pre-captured offset — it never accesses PSI or editor models.
- * Background work uses [ReadAction.nonBlocking] so it yields to write actions.
+ * - Caret/document offsets are captured at **event time** — no PSI access in the Timer.
+ * - Background analysis runs via [ReadAction.nonBlocking] — yields to write actions.
+ * - [com.intellij.openapi.application.NonBlockingReadAction.finishOnUiThread] guarantees EDT-safe panel mutation.
+ * - On tool window **first open**, analysis is triggered for the current editor position
+ *   so the panel is not empty before the user moves the caret.
  *
  * ## Memory model
  *
- * Editor listeners are registered with a per-editor [Disposable] that is a child of the
- * tool window's own disposable. When the tool window is disposed (plugin unload, project
- * close), all child disposables are cascade-disposed and the listeners are removed.
- * No global mutable collections of editors are kept.
+ * Each editor attachment creates a child [Disposable] of [ChainUpdateScheduler.parentDisposable].
+ * When the tool window is disposed, all child disposables cascade-dispose, removing listeners
+ * without any global editor registry.
  */
 class CodeBlockChainToolWindowFactory : ToolWindowFactory {
 
@@ -91,42 +78,43 @@ class CodeBlockChainToolWindowFactory : ToolWindowFactory {
             FileEditorManagerListener.FILE_EDITOR_MANAGER,
             object : FileEditorManagerListener {
                 override fun fileOpened(source: FileEditorManager, file: VirtualFile) {
-                    source.selectedTextEditor?.let { scheduler.attachTo(it) }
+                    source.selectedTextEditor?.let { scheduler.attachTo(it, triggerImmediate = false) }
                 }
 
                 override fun selectionChanged(event: FileEditorManagerEvent) {
                     panel.showPlaceholder("Move cursor into a KotlinPoet builder call")
                     FileEditorManager.getInstance(project)
                         .selectedTextEditor
-                        ?.let { scheduler.attachTo(it) }
+                        ?.let { scheduler.attachTo(it, triggerImmediate = true) }
                 }
             },
         )
 
-        // Attach to editor already open when the tool window is created
+        // Attach to the editor already open when the tool window is created and
+        // immediately trigger analysis so the panel isn't empty on first open.
         FileEditorManager.getInstance(project)
             .selectedTextEditor
-            ?.let { scheduler.attachTo(it) }
+            ?.let { scheduler.attachTo(it, triggerImmediate = true) }
     }
 }
 
 // ── Update scheduler ───────────────────────────────────────────────────────────
-private val key: Key<Boolean> = Key.create("kotlinpoet.chain.listener.attached")
+private val attachKey: Key<Boolean> = Key.create("kotlinpoet.chain.listener.attached")
 
 /**
  * Manages caret/document listeners and schedules debounced background analysis.
  *
- * ## Key invariants
+ * ## Offset capture
  *
- * - **Offset capture at event time**: Both [CaretListener] and [DocumentListener]
- *   run in a context where `event.caret.offset` / `editor.caretModel.currentCaret.offset`
- *   is accessible. The offset is stored before the debounce Timer fires.
+ * Both [CaretListener] and [DocumentListener] run in a context where the caret model
+ * is accessible. The offset is stored in [lastOffset] **at event time** — the Swing
+ * Timer only reads a pre-captured [Int], never the editor model.
  *
- * - **Timer runs on EDT, does NOT access PSI**: The Timer lambda only reads the
- *   pre-captured [Int] offset — no PSI, no editor model access.
+ * ## No editor registry
  *
- * - **No editor registry**: Listeners are registered with a child disposable of
- *   [parentDisposable]. No `Set<Editor>` or similar structure is kept.
+ * Each [attachTo] creates a child [Disposable] of [parentDisposable]. When the tool
+ * window closes, all children are cascade-disposed. A user-data key guards against
+ * attaching the same editor twice.
  */
 private class ChainUpdateScheduler(
     private val project: Project,
@@ -149,62 +137,56 @@ private class ChainUpdateScheduler(
     private var lastEditor: Editor? = null
 
     /**
-     * Attaches caret and document listeners to [editor], scoped to a new child
-     * disposable of [parentDisposable]. Idempotent per editor via a user-data key.
+     * Attaches caret and document listeners to [editor], scoped to a child disposable.
+     *
+     * @param triggerImmediate If `true`, schedules one immediate analysis with the
+     *        current caret position (used on tool window open and editor switch).
      */
-    fun attachTo(editor: Editor) {
-        // Guard: don't attach twice to the same editor
-        if (editor.getUserData(key) == true) return
-        editor.putUserData(key, true)
+    fun attachTo(editor: Editor, triggerImmediate: Boolean) {
+        if (editor.getUserData(attachKey) == true) {
+            // Already attached — still allow immediate trigger if requested
+            if (triggerImmediate) scheduleUpdate(editor, editor.caretModel.currentCaret.offset)
+            return
+        }
+        editor.putUserData(attachKey, true)
 
         // Child disposable so listeners are cleaned up when either the tool window
         // or the editor component is disposed — whichever comes first.
         val editorDisposable = Disposer.newDisposable(parentDisposable, "KPoetChainListener")
 
         val caretListener = object : CaretListener {
-            // caretPositionChanged runs on EDT with full access to the caret model
+            // Runs on EDT with full caret model access — capture offset here
             override fun caretPositionChanged(event: CaretEvent) {
-                // Capture offset HERE — at event time, in the correct context
                 val offset = event.caret.offset
-                lastEditor = editor
-                lastOffset = offset
-                scheduleUpdate()
+                scheduleUpdate(editor, offset)
             }
         }
 
         val documentListener = object : DocumentListener {
-            // documentChanged may run in write action context; we only need the
-            // caret offset, which is accessible via the caretModel in this context.
+            // Runs on EDT in write-action context — caret model accessible
             override fun documentChanged(event: DocumentEvent) {
-                // The document change itself doesn't carry a caret offset.
-                // We use the current caret position at the time of the change.
-                // This is safe: documentChanged is called on EDT and caret access
-                // is allowed (we are in the document's write context).
-                lastEditor = editor
-                lastOffset = editor.caretModel.currentCaret.offset
-                scheduleUpdate()
+                scheduleUpdate(editor, editor.caretModel.currentCaret.offset)
             }
         }
 
         editor.caretModel.addCaretListener(caretListener, editorDisposable)
         editor.document.addDocumentListener(documentListener, editorDisposable)
+
+        if (triggerImmediate) scheduleUpdate(editor, editor.caretModel.currentCaret.offset)
     }
 
     // ── Debounce ──────────────────────────────────────────────────────────────
 
     /**
-     * Resets the debounce timer. Called on EDT. Does NOT access PSI or editor models —
-     * only reads [lastOffset] and [lastEditor] which were captured at event time.
+     * Resets the debounce timer. Captures [editor] and [offset] into local vals that
+     * the Timer lambda closes over — no PSI or editor model access inside the Timer.
      */
-    private fun scheduleUpdate() {
+    private fun scheduleUpdate(editor: Editor, offset: Int) {
+        lastEditor = editor
+        lastOffset = offset
         debounceTimer?.stop()
-        // Snapshot both fields on EDT — the Timer lambda will close over these local vals.
-        val offset = lastOffset
-        val editor = lastEditor ?: return
-
         debounceTimer = Timer(400) {
-            // Still on EDT here — immediately hand off to background.
-            // No PSI access in this lambda.
+            // EDT — only reads the pre-captured local vals
             launchBackgroundAnalysis(editor, offset)
         }.also {
             it.isRepeats = false
@@ -223,6 +205,7 @@ private class ChainUpdateScheduler(
             .finishOnUiThread(ModalityState.defaultModalityState()) { result ->
                 panel.showResult(result)
             }
+            .coalesceBy(this, editor)
             .submit(AppExecutorUtil.getAppExecutorService())
     }
 
@@ -234,7 +217,7 @@ private class ChainUpdateScheduler(
         val element = psiFile.findElementAt(offset)
             ?: return ChainAnalysisResult.empty()
 
-        val call = findBuilderCallAt(element)
+        val call = CodeBlockPsiNavigator.findBuilderCallAt(element)
             ?: return ChainAnalysisResult.empty()
 
         val chain = CodeBlockPsiNavigator.findChain(call)
@@ -249,7 +232,7 @@ private class ChainUpdateScheduler(
             val contribution = ContributionAnalyzer.analyze(chainCall)
             contributions += contribution
 
-            val cachedAnalysis = getCachedAnalysis(chainCall)
+            val cachedAnalysis = getCachedAnalysis(chainCall, extractOnMissing = false)
             if (cachedAnalysis?.haveFormatProblems == true || cachedAnalysis?.haveProblems == true) {
                 inspectionProblems += index
             }
@@ -264,20 +247,9 @@ private class ChainUpdateScheduler(
 
         return ChainAnalysisResult(chain, contributions, violations, inspectionProblems, state)
     }
-
-    private fun findBuilderCallAt(element: PsiElement): KtCallExpression? {
-        var e: PsiElement? = element
-        while (e != null) {
-            if (e is KtCallExpression && (e.calleeExpression?.text ?: "") in KNOWN_BUILDER_CALLS) {
-                return e
-            }
-            e = e.parent
-        }
-        return null
-    }
 }
 
-// ── Analysis result (plain data, no PSI references) ───────────────────────────
+// ── Analysis result ────────────────────────────────────────────────────────────
 
 private data class ChainAnalysisResult(
     val calls: List<KtCallExpression>,
@@ -289,8 +261,13 @@ private data class ChainAnalysisResult(
     fun isEmpty(): Boolean = calls.isEmpty()
 
     companion object {
-        fun empty(): ChainAnalysisResult =
-            ChainAnalysisResult(emptyList(), emptyList(), emptyList(), emptyList(), EmissionState.Initial)
+        fun empty(): ChainAnalysisResult = ChainAnalysisResult(
+            calls = emptyList(),
+            contributions = emptyList(),
+            violations = emptyList(),
+            inspectionProblems = emptyList(),
+            finalState = EmissionState.Initial,
+        )
     }
 }
 
@@ -299,7 +276,9 @@ private data class ChainAnalysisResult(
 /**
  * The Swing panel for the KotlinPoet Chain tool window.
  *
- * All mutations happen on EDT (enforced by [finishOnUiThread] above and [SwingUtilities.invokeLater]).
+ * All mutations happen on the EDT (enforced by [com.intellij.openapi.application.NonBlockingReadAction.finishOnUiThread] in the scheduler).
+ * The preview section uses [renderChain] to produce properly indented output, visually
+ * distinct from the per-call metadata rows via a different background and border.
  */
 private class CodeBlockChainPanel {
 
@@ -510,7 +489,6 @@ private class CodeBlockChainPanel {
                     font = JBUI.Fonts.create(Font.MONOSPACED, 12)
                     border = null
                 },
-                BorderLayout.CENTER,
             )
         }
         outerPanel.add(innerPanel)
@@ -518,7 +496,7 @@ private class CodeBlockChainPanel {
     }
 }
 
-// ── Display helpers (top-level, not singleton state) ──────────────────────────
+// ── Display helpers ────────────────────────────────────────────────────────────
 
 private fun MethodSemantics.tag(): String = when (this) {
     MethodSemantics.StatementCall -> "[stmt]"
