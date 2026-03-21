@@ -108,15 +108,19 @@ class PluginErrorReporting : ErrorReportSubmitter() {
         ⚠️ The full stacktrace was **copied to your clipboard automatically**.
         Please paste it below before submitting this issue.
 
-        _Short stacktrace can remove this_
-        ```java
-        """.trimIndent() + "\n" + shortStackTrace + "\n" + """
-        ```
-
         _Full stacktrace_
         ```java
         PASTE STACKTRACE HERE
         ```
+
+        <details>
+        <summary>Short stacktrace can remove this</summary>
+
+        ```java
+        """.trimIndent() + "\n" + shortStackTrace + "\n" + """
+        ```
+
+        </details>
         """.trimIndent()
     }
 
