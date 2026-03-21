@@ -127,6 +127,10 @@
         <platform.backend.documentation.targetProvider
             implementation="io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation.KotlinPoetDocumentationTargetProvider"/>
 
+        <!-- Handles psi_element:// links inside KotlinPoet documentation popups -->
+        <platform.backend.documentation.linkHandler
+            implementation="io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation.KotlinPoetDocumentationLinkHandler"/>
+
         <searcher
             forClass="com.intellij.find.usages.api.UsageSearchParameters"
             implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.references.KotlinPoetFormatUsageSearcher"/>
