@@ -1,5 +1,11 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.chain
 
+import com.intellij.psi.PsiElement
+import com.intellij.util.concurrency.annotations.RequiresReadLock
+import io.github.kingg22.kotlinpoet.assistant.domain.chain.BUILDER_METHOD_NAMES
+import io.github.kingg22.kotlinpoet.assistant.domain.chain.DSL_BUILDER_NAMES
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator.findBuilderCallAt
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator.findChain
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator.findPredecessorCall
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator.findSuccessorCall
@@ -15,37 +21,6 @@ import org.jetbrains.kotlin.psi.KtValueArgument
 import org.jetbrains.kotlin.psi.KtValueArgumentList
 
 /**
- * All KotlinPoet `CodeBlock.Builder` method names that the plugin understands.
- *
- * The tool window uses this set directly (instead of `Constants.KOTLINPOET_CALLS`) so
- * that calls like `.build()`, `.indent()`, `.endControlFlow()`, `.builder()` are
- * recognized even though they are not in the narrower inspection/completion set.
- */
-internal val KNOWN_BUILDER_CALLS: Set<String> = setOf(
-    "add", "addCode", "addNamed", "addStatement",
-    "beginControlFlow", "nextControlFlow", "endControlFlow",
-    "indent", "unindent",
-    "addKdoc",
-    "build",
-    "builder", "of",
-)
-
-/**
- * Names of DSL functions whose lambda body contains sequential `CodeBlock.Builder` calls.
- *
- * Inside such a lambda, builder calls do NOT form a dot-chain — they are sequential
- * statements with an implicit `CodeBlock.Builder` receiver. The navigator handles this
- * separately from the dot-chain case.
- */
-private val KNOWN_DSL_BUILDERS: Set<String> = setOf(
-    "buildCodeBlock",
-    "apply",
-    "also",
-    "run",
-    "with",
-)
-
-/**
  * Walks a KotlinPoet builder method chain in PSI.
  *
  * ## Two chain shapes
@@ -54,7 +29,6 @@ private val KNOWN_DSL_BUILDERS: Set<String> = setOf(
  * ```kotlin
  * CodeBlock.builder().add("fmt", arg).addStatement("stmt").build()
  * ```
- * Each call is the `selectorExpression` of a `KtDotQualifiedExpression`.
  *
  * ### Lambda body (DSL)
  * ```kotlin
@@ -63,45 +37,44 @@ private val KNOWN_DSL_BUILDERS: Set<String> = setOf(
  *     addStatement("stmt")
  * }
  * ```
- * Calls are sequential statements inside a lambda — no dot-chain between them.
+ *
+ * ## Custom delegating methods
+ *
+ * User-defined extension functions on `CodeBlock.Builder` that delegate to known
+ * KotlinPoet methods are recognized if the **analysis cache already has an entry**
+ * for that call (populated by the annotator / inspection pass).
+ *
+ * [findBuilderCallAt] checks the cache as a fallback so these methods are included
+ * in chains when the annotator has already processed the file.
  *
  * ## Complexity
  *
- * - [findPredecessorCall], [findSuccessorCall]: **O(1)** — single PSI parent traversal.
- * - [walkBackward], [findChain]: **O(n)** bounded by [maxSteps], each step O(1).
+ * - [findPredecessorCall], [findSuccessorCall]: **O(1)**.
+ * - [walkBackward], [findChain]: **O(n)** bounded by `maxSteps`, each step O(1).
  *
- * All methods are **PSI-only** — no Analysis API, no read-action requirement beyond
- * normal PSI access rules (caller must already be in a read action).
+ * All methods are **PSI-only** (no Analysis API). Caller must be in a read action.
  */
 object CodeBlockPsiNavigator {
 
     /**
-     * The primary entry point. Returns all calls in the chain that contains [call],
+     * Primary entry point. Returns all calls in the chain that contains [call],
      * in emission order (oldest first, [call] last).
      *
-     * Handles both dot-chains and `buildCodeBlock { }` lambda bodies transparently.
+     * Handles dot-chains, `buildCodeBlock { }` lambda bodies, and standalone `of()` calls.
      */
+    @RequiresReadLock(generateAssertion = false)
     fun findChain(call: KtCallExpression, maxSteps: Int = 50): List<KtCallExpression> {
-        // 1. Try dot-chain (the common case)
-        val dotChainPredecessor = findPredecessorCall(call)
-        if (dotChainPredecessor != null) {
-            return fullChainEndingAt(call, maxSteps)
-        }
-
-        // 2. Try lambda body (buildCodeBlock DSL)
+        if (findPredecessorCall(call) != null) return fullChainEndingAt(call, maxSteps)
         val lambdaChain = findLambdaChain(call)
         if (lambdaChain != null) return lambdaChain
-
-        // 3. Standalone call (CodeBlock.of(...), or single builder call)
         return listOf(call)
     }
 
     /**
-     * Returns the `KtCallExpression` immediately preceding [call] in a dot-chain,
-     * or `null` if [call] is the first element or the chain is not a dot-chain.
-     *
+     * Finds the `KtCallExpression` immediately preceding [call] in a dot-chain.
      * O(1) — single PSI parent lookup.
      */
+    @RequiresReadLock(generateAssertion = false)
     fun findPredecessorCall(call: KtCallExpression): KtCallExpression? {
         val enclosingDot = call.parent as? KtDotQualifiedExpression ?: return null
         if (enclosingDot.selectorExpression !== call) return null
@@ -109,11 +82,10 @@ object CodeBlockPsiNavigator {
     }
 
     /**
-     * Returns the `KtCallExpression` immediately following [call] in a dot-chain,
-     * or `null` if [call] is the last visible element.
-     *
-     * O(1) — single PSI grandparent lookup.
+     * Finds the `KtCallExpression` immediately following [call] in a dot-chain.
+     * O(1).
      */
+    @RequiresReadLock(generateAssertion = false)
     fun findSuccessorCall(call: KtCallExpression): KtCallExpression? {
         val enclosingDot = call.parent as? KtDotQualifiedExpression ?: return null
         val parentDot = enclosingDot.parent as? KtDotQualifiedExpression ?: return null
@@ -122,21 +94,19 @@ object CodeBlockPsiNavigator {
     }
 
     /**
-     * Walks backward from [call] up to [maxSteps] steps in a dot-chain.
+     * Walks backward from [call] collecting predecessors (oldest → most recent),
+     * exclusive of [call] itself.
      *
-     * Returns predecessors from **oldest to most recent** (exclusive of [call]).
-     * Stops when:
-     * - The predecessor method name is not in [KNOWN_BUILDER_CALLS].
-     * - The PSI structure is broken (variable reference, conditional, etc.).
-     * - [maxSteps] is reached.
+     * Stops when the callee is not a known builder method AND does not have a
+     * cached analysis (which would indicate a recognized custom delegating method).
      */
+    @RequiresReadLock(generateAssertion = false)
     fun walkBackward(call: KtCallExpression, maxSteps: Int = 50): List<KtCallExpression> {
         val result = ArrayDeque<KtCallExpression>(minOf(maxSteps, 16))
         var current = findPredecessorCall(call)
         var steps = 0
         while (current != null && steps < maxSteps) {
-            val callee = current.calleeExpression?.text ?: break
-            if (callee !in KNOWN_BUILDER_CALLS) break
+            if (!isRecognizedBuilderCall(current)) break
             result.addFirst(current)
             current = findPredecessorCall(current)
             steps++
@@ -144,21 +114,35 @@ object CodeBlockPsiNavigator {
         return result
     }
 
-    /**
-     * Full dot-chain ending at [call]: `walkBackward(call) + listOf(call)`.
-     */
+    /** Returns `walkBackward(call) + listOf(call)`. */
+    @RequiresReadLock(generateAssertion = false)
     fun fullChainEndingAt(call: KtCallExpression, maxSteps: Int = 50): List<KtCallExpression> =
         walkBackward(call, maxSteps) + listOf(call)
+
+    /**
+     * Finds the nearest KotlinPoet builder call at or above [element] in the PSI tree.
+     *
+     * Checks:
+     * 1. Callee text is in [BUILDER_METHOD_NAMES] (fast, PSI-only).
+     * 2. The call has a cached analysis (covers custom delegating methods after the
+     *    annotator has run, without requiring a fresh K2 session).
+     */
+    @RequiresReadLock(generateAssertion = false)
+    fun findBuilderCallAt(element: PsiElement): KtCallExpression? {
+        var e: PsiElement? = element
+        while (e != null) {
+            if (e is KtCallExpression && isRecognizedBuilderCall(e)) return e
+            e = e.parent
+        }
+        return null
+    }
 }
 
 // ── Lambda body traversal ──────────────────────────────────────────────────
 
 /**
- * Detects whether [call] is a direct statement inside a `buildCodeBlock { }` lambda
- * (or other known DSL builder) and returns **all sibling calls** in emission order.
- *
- * The calls are filtered to only include those with known builder call names.
- * Returns `null` if [call] is not inside a recognized DSL lambda.
+ * Returns the sibling calls inside a `buildCodeBlock { }` lambda if [call] is one
+ * of them, or `null` if [call] is not inside a recognized DSL builder lambda.
  *
  * ## PSI structure
  * ```
@@ -178,29 +162,35 @@ private fun findLambdaChain(call: KtCallExpression): List<KtCallExpression>? {
 
     // The lambda can be a trailing lambda (KtLambdaArgument) or a normal argument
     val dslCall = when (val lambdaParent = lambdaExpr.parent) {
-        is KtLambdaArgument -> {
-            // Trailing lambda: lambdaParent.parent is the KtCallExpression
-            lambdaParent.parent as? KtCallExpression
-        }
-
-        is KtValueArgument -> {
-            val argList = lambdaParent.parent as? KtValueArgumentList ?: return null
-            argList.parent as? KtCallExpression
-        }
-
+        is KtLambdaArgument -> lambdaParent.parent as? KtCallExpression
+        is KtValueArgument -> (lambdaParent.parent as? KtValueArgumentList)?.parent as? KtCallExpression
         else -> null
     } ?: return null
 
     val dslName = dslCall.calleeExpression?.text ?: return null
-    if (dslName !in KNOWN_DSL_BUILDERS) return null
+    if (dslName !in DSL_BUILDER_NAMES) return null
 
     // Collect all direct KtCallExpression statements in the lambda body
     return blockExpr.statements
         .filterIsInstance<KtCallExpression>()
-        .filter { (it.calleeExpression?.text ?: "") in KNOWN_BUILDER_CALLS }
+        .filter { isRecognizedBuilderCall(it) }
 }
 
-// ── Private PSI helpers ────────────────────────────────────────────────────────
+/**
+ * Returns `true` if [call] is a recognized CodeBlock builder call:
+ * - Its callee is in [BUILDER_METHOD_NAMES], **or**
+ * - The analysis cache already has an entry for it (custom delegating method
+ *   recognized by [io.github.kingg22.kotlinpoet.assistant.domain.extractor.KotlinPoetCallTargetResolver]).
+ *
+ * The cache check uses `extractOnMissing = false` to avoid triggering K2 analysis
+ * during the PSI walk — we only trust what is already known.
+ */
+private fun isRecognizedBuilderCall(call: KtCallExpression): Boolean {
+    val callee = call.calleeExpression?.text ?: return false
+    if (callee in BUILDER_METHOD_NAMES) return true
+    // Cache check: covers custom extension methods that delegate to CodeBlock.Builder
+    return getCachedAnalysis(call, extractOnMissing = false) != null
+}
 
 /**
  * Returns the terminal `KtCallExpression` of an expression in a dot-chain.

@@ -2,6 +2,7 @@ package io.github.kingg22.kotlinpoet.assistant.infrastructure.chain
 
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.kingg22.kotlinpoet.assistant.domain.chain.BUILDER_METHOD_NAMES
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.psi.KtCallExpression
@@ -225,5 +226,5 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
     }
 
     private fun KtFile.builderCalls() = collectDescendantsOfType<KtCallExpression>()
-        .filter { (it.calleeExpression?.text ?: "") in KNOWN_BUILDER_CALLS }
+        .filter { (it.calleeExpression?.text ?: "") in BUILDER_METHOD_NAMES }
 }
