@@ -4,25 +4,32 @@ import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.editor.ScrollType
+import com.intellij.openapi.editor.colors.CodeInsightColors
 import com.intellij.openapi.editor.event.CaretEvent
 import com.intellij.openapi.editor.event.CaretListener
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
+import com.intellij.openapi.editor.markup.HighlighterLayer
+import com.intellij.openapi.editor.markup.HighlighterTargetArea
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.Disposer
 import com.intellij.openapi.util.Key
+import com.intellij.openapi.util.TextRange
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.psi.PsiDocumentManager
+import com.intellij.ui.HyperlinkLabel
 import com.intellij.ui.JBColor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.content.ContentFactory
 import com.intellij.util.concurrency.AppExecutorUtil
+import com.intellij.util.concurrency.EdtExecutorService
 import com.intellij.util.ui.JBUI
 import com.intellij.util.ui.UIUtil
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.ChainViolation
@@ -34,10 +41,12 @@ import io.github.kingg22.kotlinpoet.assistant.domain.chain.MethodSemantics
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.renderChain
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.toTextRange
 import org.jetbrains.kotlin.psi.KtCallExpression
 import java.awt.BorderLayout
 import java.awt.Color
 import java.awt.Font
+import java.util.concurrent.TimeUnit
 import javax.swing.BorderFactory
 import javax.swing.BoxLayout
 import javax.swing.JComponent
@@ -45,6 +54,7 @@ import javax.swing.JPanel
 import javax.swing.JTextArea
 import javax.swing.SwingConstants
 import javax.swing.Timer
+import javax.swing.event.HyperlinkEvent
 
 /**
  * Factory for the **KotlinPoet Chain** tool window.
@@ -70,6 +80,7 @@ class CodeBlockChainToolWindowFactory : ToolWindowFactory {
         toolWindow.contentManager.addContent(
             ContentFactory.getInstance().createContent(panel.component, "", false),
         )
+        panel.showPlaceholder("Open a file with a KotlinPoet usage to see the chain of calls")
 
         val scheduler = ChainUpdateScheduler(project, panel, toolWindow.disposable)
 
@@ -107,8 +118,8 @@ private val attachKey: Key<Boolean> = Key.create("kotlinpoet.chain.listener.atta
  * ## Offset capture
  *
  * Both [CaretListener] and [DocumentListener] run in a context where the caret model
- * is accessible. The offset is stored in [lastOffset] **at event time** — the Swing
- * Timer only reads a pre-captured [Int], never the editor model.
+ * is accessible. The offset is capture **at event time** — the Swing Timer only reads a pre-captured [Int],
+ * never the editor model.
  *
  * ## No editor registry
  *
@@ -121,20 +132,7 @@ private class ChainUpdateScheduler(
     private val panel: CodeBlockChainPanel,
     private val parentDisposable: Disposable,
 ) {
-    private var debounceTimer: Timer? = null
-
-    // Last known offset — captured at event time, read on EDT inside Timer.
-    // Volatile because it is written from various EDT calls (caret/document events)
-    // and read in the same thread (Timer fires on EDT), but marking volatile makes
-    // the intent explicit and is harmless.
-    @Volatile
-    private var lastOffset: Int = 0
-
-    // Last editor — captured at event time, safe to store (weak reference semantics
-    // via disposable: if the editor is closed, its disposable is disposed and listeners
-    // are removed before the editor becomes invalid).
-    @Volatile
-    private var lastEditor: Editor? = null
+    private lateinit var debounceTimer: Timer
 
     /**
      * Attaches caret and document listeners to [editor], scoped to a child disposable.
@@ -176,15 +174,18 @@ private class ChainUpdateScheduler(
     }
 
     // ── Debounce ──────────────────────────────────────────────────────────────
+    private fun stopDebounceTimer() {
+        if (::debounceTimer.isInitialized) {
+            debounceTimer.stop()
+        }
+    }
 
     /**
      * Resets the debounce timer. Captures [editor] and [offset] into local vals that
      * the Timer lambda closes over — no PSI or editor model access inside the Timer.
      */
     private fun scheduleUpdate(editor: Editor, offset: Int) {
-        lastEditor = editor
-        lastOffset = offset
-        debounceTimer?.stop()
+        stopDebounceTimer()
         debounceTimer = Timer(400) {
             // EDT — only reads the pre-captured local vals
             launchBackgroundAnalysis(editor, offset)
@@ -203,7 +204,7 @@ private class ChainUpdateScheduler(
             }
             .expireWith(parentDisposable)
             .finishOnUiThread(ModalityState.defaultModalityState()) { result ->
-                panel.showResult(result)
+                panel.showResult(result, editor)
             }
             .coalesceBy(this, editor)
             .submit(AppExecutorUtil.getAppExecutorService())
@@ -309,7 +310,7 @@ private class CodeBlockChainPanel {
         contentPanel.repaint()
     }
 
-    fun showResult(result: ChainAnalysisResult) {
+    fun showResult(result: ChainAnalysisResult, editor: Editor) {
         if (result.isEmpty()) {
             showPlaceholder("Move cursor into a KotlinPoet builder call")
             return
@@ -323,7 +324,7 @@ private class CodeBlockChainPanel {
             val contribution = result.contributions.getOrNull(index)
             val violation = result.violations.firstOrNull { it.first == index }?.second
             val hasInspection = index in result.inspectionProblems
-            contentPanel.add(buildCallRow(call, contribution, violation, hasInspection))
+            contentPanel.add(buildCallRow(call, contribution, violation, hasInspection, editor))
         }
 
         if (result.finalState.isInStatement) {
@@ -361,6 +362,7 @@ private class CodeBlockChainPanel {
         contribution: MethodEmissionContribution?,
         violation: ChainViolation?,
         hasInspection: Boolean,
+        editor: Editor,
     ): JPanel {
         val bg = when {
             violation != null -> JBColor(0xFFEEEE, 0x4D2020)
@@ -389,8 +391,16 @@ private class CodeBlockChainPanel {
             layout = BoxLayout(this, BoxLayout.X_AXIS)
             isOpaque = false
             add(
-                JBLabel(".$methodName($argumentList)  ").apply {
+                HyperlinkLabel(".$methodName($argumentList)  ").apply {
                     font = font.deriveFont(Font.BOLD)
+                    addHyperlinkListener {
+                        if (it.eventType == HyperlinkEvent.EventType.ACTIVATED) {
+                            navigateToSpan(
+                                editor,
+                                contribution?.callSpan?.singleRangeOrNull()?.toTextRange() ?: call.textRange,
+                            )
+                        }
+                    }
                 },
             )
             if (tag.isNotEmpty()) {
@@ -493,6 +503,28 @@ private class CodeBlockChainPanel {
         }
         outerPanel.add(innerPanel)
         return outerPanel
+    }
+}
+
+private fun navigateToSpan(editor: Editor, range: TextRange) {
+    // Mueve el caret y hace scroll — no abre un nuevo editor
+    editor.caretModel.moveToOffset(range.startOffset)
+    editor.scrollingModel.scrollToCaret(ScrollType.MAKE_VISIBLE)
+    editor.markupModel.addRangeHighlighter(
+        CodeInsightColors.BLINKING_HIGHLIGHTS_ATTRIBUTES,
+        range.startOffset,
+        range.endOffset,
+        HighlighterLayer.SELECTION,
+        HighlighterTargetArea.EXACT_RANGE,
+    ).also { highlighter ->
+        // Auto-remove después de 1.5s
+        EdtExecutorService
+            .getScheduledExecutorInstance()
+            .schedule(
+                { editor.markupModel.removeHighlighter(highlighter) },
+                1200,
+                TimeUnit.MILLISECONDS,
+            )
     }
 }
 
