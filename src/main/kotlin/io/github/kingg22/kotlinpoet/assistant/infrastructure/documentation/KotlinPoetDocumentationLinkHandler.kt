@@ -11,7 +11,6 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil.findChildOfType
 import com.intellij.util.ExceptionUtil
 import org.jetbrains.kotlin.kdoc.psi.impl.KDocName
-import org.jetbrains.kotlin.psi.KtElement
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
 class KotlinPoetDocumentationLinkHandler : DocumentationLinkHandler {
@@ -32,7 +31,7 @@ class KotlinPoetDocumentationLinkHandler : DocumentationLinkHandler {
     }
 
     /** Copied from [org.jetbrains.kotlin.idea.k2.codeinsight.quickDoc.resolveKDocLink] to prevent usage of Kotlin K1 package */
-    private fun resolveKDocLink(fqn: String, element: KtElement): PsiElement? {
+    private fun resolveKDocLink(fqn: String, element: PsiElement): PsiElement? {
         val ktPsiFactory = KtPsiFactory(element.project)
         val fragment = ktPsiFactory.createBlockCodeFragment("/** [$fqn] */ val __p = 42", element)
         return findChildOfType(fragment, KDocName::class.java)?.reference?.resolve()

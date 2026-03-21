@@ -15,8 +15,19 @@ import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 import org.jetbrains.kotlin.psi.psiUtil.getParentOfType
 
+/**
+ * Provides [DocumentationTarget]s for KotlinPoet format string tokens.
+ *
+ * Editor (file + offset) — [DocumentationTargetProvider]
+ *
+ * Invoked on hover / `Ctrl+Q` inside a KotlinPoet format string. Locates the
+ * placeholder or control symbol at `offset` via the cached analysis.
+ */
 class KotlinPoetDocumentationTargetProvider : DocumentationTargetProvider {
     private val logger = thisLogger()
+
+    // ── DocumentationTargetProvider — editor hover / Ctrl+Q ───────────────────
+    // Is required to use the offset to find the target
 
     override fun documentationTargets(file: PsiFile, offset: Int): List<DocumentationTarget> {
         try {
@@ -31,7 +42,6 @@ class KotlinPoetDocumentationTargetProvider : DocumentationTargetProvider {
 
             val placeholder = format.placeholders.firstOrNull { it.span.contains(offset) }
             if (placeholder != null) {
-                // contextElement = the string template: a valid KtElement for KDoc resolution scope
                 return listOf(KotlinPoetDocumentationTarget(Placeholder(placeholder.kind), template))
             }
 
@@ -40,7 +50,7 @@ class KotlinPoetDocumentationTargetProvider : DocumentationTargetProvider {
                 return listOf(KotlinPoetDocumentationTarget(Control(control.type), template))
             }
 
-            val fallback = resolveControlSymbolFromSource(file, template, offset)
+            val fallback = resolveControlSymbolFromSource(template, offset)
             if (fallback != null) {
                 logger.warn("Control symbol not found in analysis, but found fallback of $fallback")
                 return listOf(KotlinPoetDocumentationTarget(Control(fallback), template))
@@ -54,20 +64,20 @@ class KotlinPoetDocumentationTargetProvider : DocumentationTargetProvider {
     }
 }
 
-private fun resolveControlSymbolFromSource(
-    file: PsiFile,
-    template: KtStringTemplateExpression,
-    offset: Int,
-): SymbolType? {
+// ── Control symbol fallback ────────────────────────────────────────────────────
+
+/**
+ * Resolves a [SymbolType] from the raw source text when the analysis cache has no
+ * entry for the given offset (e.g., the annotator hasn't run yet).
+ *
+ * Uses [KtStringTemplateExpression.text] (relative offsets) instead of [PsiFile.text]
+ * (absolute offsets) to avoid off-by-one errors when the template is not at position 0.
+ */
+private fun resolveControlSymbolFromSource(template: KtStringTemplateExpression, offset: Int): SymbolType? {
     if (!template.textRange.contains(offset)) return null
-
-    // FIXME use template.text instead
-    val text = file.text
-    val current = text.getOrNull(offset) ?: return null
-
-    if (current == '%' && text.getOrNull(offset + 1) == '%') {
-        return SymbolType.LITERAL_PERCENT
-    }
-
+    val text = template.text
+    val localOffset = offset - template.textRange.startOffset
+    val current = text.getOrNull(localOffset) ?: return null
+    if (current == '%' && text.getOrNull(localOffset + 1) == '%') return SymbolType.LITERAL_PERCENT
     return SymbolType.fromString(current.toString())
 }

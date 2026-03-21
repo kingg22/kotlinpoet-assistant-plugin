@@ -1,12 +1,13 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation
 
 import com.intellij.model.Pointer
+import com.intellij.openapi.util.NlsContexts
 import com.intellij.platform.backend.documentation.DocumentationResult
 import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.presentation.TargetPresentation
+import com.intellij.psi.PsiElement
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation.DocToken.Control
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation.DocToken.Placeholder
-import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
 /**
  * Documentation target for a KotlinPoet placeholder or control symbol.
@@ -20,7 +21,7 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 class KotlinPoetDocumentationTarget(
     private val token: DocToken,
     /** The PSI element providing the resolution scope for `psi_element://` links. */
-    val contextElement: KtStringTemplateExpression,
+    val contextElement: PsiElement,
 ) : DocumentationTarget {
 
     override fun createPointer(): Pointer<out DocumentationTarget> = Pointer.hardPointer(this)
@@ -32,6 +33,8 @@ class KotlinPoetDocumentationTarget(
     override fun computeDocumentation(): DocumentationResult = DocumentationResult
         .documentation(token.html())
         .externalUrl(token.externalUrl() ?: "https://square.github.io/kotlinpoet/")
+
+    override fun computeDocumentationHint(): @NlsContexts.HintText String = token.html()
 }
 
 private fun DocToken.externalUrl(): String? = when (this) {
