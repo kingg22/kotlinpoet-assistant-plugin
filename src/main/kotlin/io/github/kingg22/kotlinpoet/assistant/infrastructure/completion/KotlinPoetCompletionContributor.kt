@@ -5,6 +5,7 @@ import com.intellij.codeInsight.completion.CompletionParameters
 import com.intellij.codeInsight.completion.CompletionProvider
 import com.intellij.codeInsight.completion.CompletionResultSet
 import com.intellij.codeInsight.completion.CompletionType
+import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.thisLogger
@@ -17,6 +18,8 @@ import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.ExceptionUtil
 import com.intellij.util.ProcessingContext
+import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
+import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.looksLikeKotlinPoetCall
 import org.jetbrains.kotlin.psi.KtCallExpression
@@ -27,36 +30,44 @@ class KotlinPoetCompletionContributor :
     DumbAware {
 
     init {
-        // Patrón: Estamos dentro de un String que es argumento de una función de KotlinPoet
         val pattern: PsiElementPattern.Capture<PsiElement> = psiElement().inside(KtStringTemplateExpression::class.java)
-
         extend(CompletionType.BASIC, pattern, PlaceholderCompletionProvider)
     }
 
     private object PlaceholderCompletionProvider : CompletionProvider<CompletionParameters>() {
-        /**
-         * @see io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.FormatKind
-         * @see io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol.SymbolType.LITERAL_PERCENT
-         */
-        private val placeholderKind = listOf(
-            // Literal
-            createPlaceholder('L', "Literal"),
-            // String
-            createPlaceholder('S', "String"),
-            // Type
-            createPlaceholder('T', "Type"),
-            // Member
-            createPlaceholder('M', "Member"),
-            // Name
-            createPlaceholder('N', "Name"),
-            // String template
-            createPlaceholder('P', "String template"),
-
-            // Special from Control Symbol
-            createPlaceholder('%', "Percent sign"),
-        )
-
         private val logger = thisLogger()
+
+        /**
+         * All recognized placeholder kinds with their UI labels and bundle keys.
+         * The `%%` control symbol is appended separately since it has no [PlaceholderSpec.FormatKind].
+         */
+        private val placeholderKind by lazy {
+            listOf(
+                buildPlaceholderItem(
+                    PlaceholderSpec.FormatKind.LITERAL,
+                    "Literal",
+                    "doc.placeholder.L.desc",
+                ),
+                buildPlaceholderItem(
+                    PlaceholderSpec.FormatKind.STRING,
+                    "String",
+                    "doc.placeholder.S.desc",
+                ),
+                buildPlaceholderItem(PlaceholderSpec.FormatKind.TYPE, "Type", "doc.placeholder.T.desc"),
+                buildPlaceholderItem(PlaceholderSpec.FormatKind.NAME, "Name", "doc.placeholder.N.desc"),
+                buildPlaceholderItem(
+                    PlaceholderSpec.FormatKind.MEMBER,
+                    "Member",
+                    "doc.placeholder.M.desc",
+                ),
+                buildPlaceholderItem(
+                    PlaceholderSpec.FormatKind.STRING_TEMPLATE,
+                    "String template",
+                    "doc.placeholder.P.desc",
+                ),
+                buildPercentItem(),
+            )
+        }
 
         override fun addCompletions(
             parameters: CompletionParameters,
@@ -64,7 +75,6 @@ class KotlinPoetCompletionContributor :
             result: CompletionResultSet,
         ) {
             try {
-                // 1. Verificar si realmente estamos en un contexto de KotlinPoet (usando tu Extractor)
                 val hostString = parameters.position.parentOfType<KtStringTemplateExpression>() ?: run {
                     logger.trace("Skipping completion inside non-string expression: ${parameters.position.text}")
                     return
@@ -75,8 +85,6 @@ class KotlinPoetCompletionContributor :
                 }
 
                 val kotlinPoetCallAnalysis = getCachedAnalysis(call)
-
-                // Si no es KotlinPoet, salimos
                 if (kotlinPoetCallAnalysis == null ||
                     (DumbService.isDumb(call.project) && !call.looksLikeKotlinPoetCall())
                 ) {
@@ -84,10 +92,7 @@ class KotlinPoetCompletionContributor :
                     return
                 }
 
-                // 2. Si el usuario escribió '%', sugerimos los tipos básicos
                 val offset = parameters.offset
-
-                // Obtenemos el texto justo antes del cursor
                 val document = parameters.editor.document
                 val startOffset = hostString.textRange.startOffset
                 val currentText = document.getText(TextRange(startOffset, offset))
@@ -97,15 +102,57 @@ class KotlinPoetCompletionContributor :
                 }
             } catch (e: Exception) {
                 if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
-                // Fail-safe para no romper el editor si el binding falla inesperadamente
                 logger.error("Error trying to provide completion KotlinPoet format string", e)
             }
         }
-
-        private fun createPlaceholder(char: Char, type: String): LookupElementBuilder = LookupElementBuilder
-            .create("%$char")
-            .withPresentableText("%$char")
-            .withTypeText(type)
-            .withBoldness(true)
     }
 }
+
+// ── LookupElement builders ─────────────────────────────────────────────────────
+
+/**
+ * Builds a completion item for a format placeholder.
+ *
+ * ## Presentation
+ * ```
+ * %L  [bold]    Literal [grayed right]
+ *   Emits a literal value… [grayed tail, plain text, truncated]
+ * ```
+ */
+private fun buildPlaceholderItem(
+    kind: PlaceholderSpec.FormatKind,
+    typeLabel: String,
+    descBundleKey: String,
+): LookupElement {
+    val lookupString = "%${kind.value}"
+    val fullDesc = KPoetAssistantBundle.getMessage(descBundleKey)
+    val tailText = fullDesc.stripHtml().truncated(TAIL_TEXT_MAX_LENGTH)
+
+    return LookupElementBuilder
+        .create(lookupString)
+        .withPresentableText(lookupString)
+        .withTypeText(typeLabel, true)
+        .withTailText("  $tailText", true)
+        .withBoldness(true)
+}
+
+/**
+ * Builds the `%%` (literal percent sign) completion item.
+ *
+ * The tail text is sufficient to convey the meaning inline.
+ */
+private fun buildPercentItem(): LookupElement {
+    val desc = KPoetAssistantBundle.getMessage("doc.control.percent.desc")
+    return LookupElementBuilder
+        .create("%%")
+        .withPresentableText("%%")
+        .withTypeText("Percent sign", true)
+        .withTailText("  ${desc.stripHtml().truncated(TAIL_TEXT_MAX_LENGTH)}", true)
+        .withBoldness(true)
+}
+
+private const val TAIL_TEXT_MAX_LENGTH = 80
+
+private fun String.stripHtml(): String = replace(Regex("<[^>]+>"), "").trim()
+
+private fun String.truncated(max: Int): String = if (length > max) take(max) + "…" else this
