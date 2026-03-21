@@ -23,7 +23,7 @@ palantir = "2.89.0"
 
 # https://github.com/diffplug/spotless/blob/main/plugin-gradle/CHANGES.md
 # https://github.com/diffplug/spotless/releases
-spotless = "8.3.0"
+spotless = "8.4.0"
 
 [libraries]
 junit4 = { group = "junit", name = "junit", version.ref = "junit4" }
