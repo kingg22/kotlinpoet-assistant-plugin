@@ -92,6 +92,19 @@
 
         <!-- ─── End Local Inspections ──────────────────────────────────────────── -->
 
+        <!--
+            KotlinPoet Chain Tool Window
+            Shows the approximated CodeBlock output for the builder chain at the current caret.
+            anchor="bottom" keeps it near the Problems/Build output area — less intrusive.
+        -->
+        <toolWindow
+            id="KotlinPoet Chain"
+            anchor="bottom"
+            secondary="true"
+            canCloseContents="false"
+            factoryClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.toolwindow.CodeBlockChainToolWindowFactory"/>
+        <!-- Note: icon is optional — remove if you don't have the asset yet -->
+
         <psi.symbolReferenceProvider
             hostLanguage="kotlin"
             hostElementClass="org.jetbrains.kotlin.psi.KtStringTemplateExpression"
