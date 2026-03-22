@@ -5,9 +5,7 @@ import com.intellij.codeInspection.ProblemsHolder
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel.FormatStyle
-import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel.FormatStyle.Mixed
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel.FormatStyle.Named
-import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel.FormatStyle.None
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel.FormatStyle.Positional
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel.FormatStyle.Relative
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel.ParserIssueKind
@@ -67,6 +65,7 @@ class FormatSyntaxInspection : AbstractKotlinPoetInspection() {
 
                 MIXED_STYLES -> buildMixFixes(
                     analysis.formatStyle,
+                    problem.data as FormatStyle,
                     analysis.format.placeholders,
                     analysis.argumentSource as? ArgumentSource.NamedMap?,
                 )
@@ -84,6 +83,7 @@ class FormatSyntaxInspection : AbstractKotlinPoetInspection() {
      */
     private fun buildMixFixes(
         actualStyle: FormatStyle,
+        targetStyle: FormatStyle,
         placeholders: List<PlaceholderSpec>,
         namedArgument: ArgumentSource.NamedMap?,
     ): Array<out LocalQuickFix> {
@@ -91,21 +91,26 @@ class FormatSyntaxInspection : AbstractKotlinPoetInspection() {
         val toRelative = ConvertToRelativePlaceholderQuickFix(placeholders)
         val toPositional = ConvertToPositionalPlaceholderQuickFix(placeholders)
 
-        return when (actualStyle) {
+        return when (actualStyle to targetStyle) {
             // Format has named placeholders but method expects vararg style.
             // Offer: convert away from named → relative or positional.
-            Named -> arrayOf(toRelative, toPositional)
+            Named to Any() -> arrayOf(toRelative, toPositional)
 
             // Format has only relative placeholders.
             // Offer: add named structure or switch to positional.
-            Relative -> arrayOf(toNamed, toPositional)
+            Relative to Any() -> arrayOf(toNamed, toPositional)
+
+            // Format needs to target Named.
+            Relative to Named -> arrayOf(toNamed)
+
+            Positional to Named -> arrayOf(toNamed)
 
             // Format has only positional placeholders.
             // Offer: add named structure or strip to relative.
-            Positional -> arrayOf(toNamed, toRelative)
+            Positional to Any() -> arrayOf(toNamed, toRelative)
 
             // True mix (multiple styles coexisting) — all conversions are valid targets.
-            Mixed, None -> arrayOf(toNamed, toRelative, toPositional)
+            else -> arrayOf(toNamed, toRelative, toPositional)
         }
     }
 }

@@ -340,23 +340,22 @@ class StringFormatParserImpl : StringFormatParser {
     ): FormatProblem? {
         if (text.isEmpty()) return null
 
-        val msg = when {
+        val (msg, targetStyle) = when {
             // Intrinsic mix
-            style == FormatStyle.Mixed -> KPoetAssistantBundle.getMessage("argument.format.invalid.mix")
+            style == FormatStyle.Mixed -> KPoetAssistantBundle.getMessage("argument.format.invalid.mix") to
+                FormatStyle.Mixed
 
             // addNamed() used but no named placeholders found
-            isNamedStyle && style != FormatStyle.Named && style != FormatStyle.None ->
-                KPoetAssistantBundle.getMessage(
-                    "argument.format.invalid.mix.should.be.named",
-                    methodName.ifEmpty { "addNamed" },
-                )
+            isNamedStyle && style != FormatStyle.Named && style != FormatStyle.None -> KPoetAssistantBundle.getMessage(
+                "argument.format.invalid.mix.should.be.named",
+                methodName.ifEmpty { "addNamed" },
+            ) to FormatStyle.Named
 
             // add() / addStatement() used but named placeholders found
-            !isNamedStyle && style == FormatStyle.Named ->
-                KPoetAssistantBundle.getMessage(
-                    "argument.format.invalid.mix.should.be.vararg",
-                    methodName.ifEmpty { "add" },
-                )
+            !isNamedStyle && style == FormatStyle.Named -> KPoetAssistantBundle.getMessage(
+                "argument.format.invalid.mix.should.be.vararg",
+                methodName.ifEmpty { "add" },
+            ) to FormatStyle.Relative
 
             else -> return null
         }
@@ -366,6 +365,7 @@ class StringFormatParserImpl : StringFormatParser {
             message = msg,
             target = ProblemTarget.TextSpanTarget(text.fullSpan()),
             kind = ParserIssueKind.MIXED_STYLES,
+            data = targetStyle,
         )
     }
 }
