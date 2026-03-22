@@ -17,27 +17,18 @@ data class PlaceholderSpec(val kind: FormatKind, val binding: PlaceholderBinding
         is PlaceholderBinding.Named -> "%${b.name}:${kind.value}"
     }
 
-    @JvmInline
-    value class FormatKind private constructor(val value: Char) {
+    enum class FormatKind(val value: Char) {
+        LITERAL('L'),
+        STRING('S'),
+        TYPE('T'),
+        MEMBER('M'),
+        NAME('N'),
+        STRING_TEMPLATE('P'),
+        ;
+
         companion object {
-            val LITERAL: FormatKind = FormatKind('L')
-            val STRING: FormatKind = FormatKind('S')
-            val TYPE: FormatKind = FormatKind('T')
-            val MEMBER: FormatKind = FormatKind('M')
-            val NAME: FormatKind = FormatKind('N')
-            val STRING_TEMPLATE: FormatKind = FormatKind('P')
-
-            private val ALL = mapOf(
-                'L' to LITERAL,
-                'S' to STRING,
-                'T' to TYPE,
-                'M' to MEMBER,
-                'N' to NAME,
-                'P' to STRING_TEMPLATE,
-            )
-
             @JvmStatic
-            fun fromChar(char: Char): FormatKind? = ALL[char]
+            fun fromChar(char: Char): FormatKind? = entries.firstOrNull { it.value == char }
         }
     }
 
