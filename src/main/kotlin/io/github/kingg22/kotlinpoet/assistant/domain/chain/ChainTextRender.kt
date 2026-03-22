@@ -29,9 +29,15 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol.SymbolT
  *
  * @see ChainRenderer
  */
-fun renderChain(contributions: List<MethodEmissionContribution>): String = ChainRenderer()
-    .apply { renderContribution(contributions) }
+fun renderChain(contributions: Collection<MethodEmissionContribution>): String = ChainRenderer()
+    .apply { renderContribution(contributions.toList()) }
     .result()
+
+fun renderChain(contribution: MethodEmissionContribution, vararg contributions: MethodEmissionContribution): String =
+    ChainRenderer()
+        .renderContribution(contribution)
+        .renderContribution(contributions.toList())
+        .result()
 
 // ── Internal renderer state ────────────────────────────────────────────────────
 
@@ -40,11 +46,11 @@ private class ChainRenderer {
     private var indentLevel = 0
     private var atLineStart = true
 
-    fun renderContribution(contributions: List<MethodEmissionContribution>) {
+    fun renderContribution(contributions: List<MethodEmissionContribution>) = apply {
         contributions.flatMap { it.parts }.forEach { renderPart(it) }
     }
 
-    fun renderContribution(contribution: MethodEmissionContribution) {
+    fun renderContribution(contribution: MethodEmissionContribution) = apply {
         contribution.parts.forEach { renderPart(it) }
     }
 
