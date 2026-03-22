@@ -64,9 +64,9 @@ object CodeBlockPsiNavigator {
      */
     @RequiresReadLock(generateAssertion = false)
     fun findChain(call: KtCallExpression, maxSteps: Int = 50): List<KtCallExpression> {
-        if (findPredecessorCall(call) != null) return fullChainEndingAt(call, maxSteps)
         val lambdaChain = findLambdaChain(call)
         if (lambdaChain != null) return lambdaChain
+        if (findPredecessorCall(call) != null) return fullChainEndingAt(call, maxSteps)
         return listOf(call)
     }
 
