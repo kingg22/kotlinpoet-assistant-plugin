@@ -84,11 +84,11 @@ class StringFormatParserImplTest {
         // ── All 6 relative placeholder kinds ─────────────────────────────────
 
         @ParameterizedTest(name = "relative placeholder %{0} is recognised")
-        @ValueSource(strings = ["L", "S", "T", "N", "M", "P"])
-        fun `relative placeholder kinds are all recognised`(kindChar: String) {
+        @ValueSource(chars = ['L', 'S', 'T', 'N', 'M', 'P'])
+        fun `relative placeholder kinds are all recognised`(kindChar: Char) {
             val model = parse("%$kindChar")
             assertEquals(1, model.placeholders.size)
-            assertEquals(checkNotNull(FormatKind.fromChar(kindChar.first())), model.placeholders.first().kind)
+            assertEquals(checkNotNull(FormatKind.fromChar(kindChar)), model.placeholders.first().kind)
             assertEquals(PlaceholderBinding.Relative, model.placeholders.first().binding)
             assertTrue(model.errors.isEmpty())
             assertTrue(model.warnings.isEmpty())
