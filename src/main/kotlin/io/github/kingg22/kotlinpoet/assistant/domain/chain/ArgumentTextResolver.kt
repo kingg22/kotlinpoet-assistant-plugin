@@ -1,6 +1,7 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.chain
 
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.ArgumentTextResolver.resolve
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.unescaped
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.base.KaConstantValue
@@ -80,19 +81,12 @@ object ArgumentTextResolver {
 private fun resolveStringTemplate(expr: KtStringTemplateExpression): ResolvedText? {
     if (expr.entries.any { it is KtStringTemplateEntryWithExpression }) return null
     val raw = expr.entries.joinToString("") { it.text }
-    return ResolvedText.StringLiteral(
-        raw
-            .replace("\\n", "\n")
-            .replace("\\t", "\t")
-            .replace("\\\"", "\"")
-            .replace("\\\\", "\\")
-            .replace("\\'", "'"),
-    )
+    return ResolvedText.StringLiteral(raw.unescaped())
 }
 
 // Can't merge cases because doesn't share a common interface
 private fun resolveConstant(constant: KaConstantValue): ResolvedText? = when (constant) {
-    is StringValue -> ResolvedText.StringLiteral(constant.value)
+    is StringValue -> ResolvedText.StringLiteral(constant.value.unescaped())
     is IntValue -> ResolvedText.NumberLiteral(constant.value)
     is LongValue -> ResolvedText.NumberLiteral(constant.value)
     is FloatValue -> ResolvedText.NumberLiteral(constant.value)

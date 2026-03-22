@@ -1,6 +1,7 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure
 
 import com.intellij.openapi.util.TextRange
+import com.intellij.openapi.util.text.StringUtil
 import com.intellij.psi.PsiElement
 import io.github.kingg22.kotlinpoet.assistant.Constants
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
@@ -24,3 +25,5 @@ fun ProblemTarget.toTextRanges(element: PsiElement): List<TextRange> = when (thi
 fun KtCallExpression.looksLikeKotlinPoetCall(): Boolean {
     return (calleeExpression?.text ?: return false) in Constants.KOTLINPOET_CALLS
 }
+
+internal fun String.unescaped(): String = StringUtil.unescapeStringCharacters(this)

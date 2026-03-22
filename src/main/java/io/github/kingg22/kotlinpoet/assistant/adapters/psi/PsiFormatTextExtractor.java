@@ -1,5 +1,6 @@
 package io.github.kingg22.kotlinpoet.assistant.adapters.psi;
 
+import com.intellij.openapi.util.text.StringUtil;
 import io.github.kingg22.kotlinpoet.assistant.domain.text.FormatText;
 import io.github.kingg22.kotlinpoet.assistant.domain.text.FormatTextSegment;
 import io.github.kingg22.kotlinpoet.assistant.domain.text.SegmentKind;
@@ -46,7 +47,7 @@ public final class PsiFormatTextExtractor {
                     if (text == null || text.isEmpty()) return null;
 
                     return new FormatTextSegment(
-                            text,
+                            StringUtil.unescapeStringCharacters(text),
                             entry.getTextRange().getStartOffset(),
                             entry.getTextRange().getEndOffset(),
                             getKind(entry));
