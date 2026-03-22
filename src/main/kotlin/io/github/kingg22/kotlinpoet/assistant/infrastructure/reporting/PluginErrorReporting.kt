@@ -26,6 +26,12 @@ private const val GITHUB_ISSUE_BASE_URL = "https://github.com/kingg22/kotlinpoet
 private val logger = Logger.getInstance(PluginErrorReporting::class.java)
 
 class PluginErrorReporting : ErrorReportSubmitter() {
+    private var openBrowser: Boolean = true
+
+    @VisibleForTesting
+    fun disableBrowserOpening() {
+        openBrowser = false
+    }
 
     override fun getReportActionText(): String = KPoetAssistantBundle.getMessage("error.handler.action")
 
@@ -55,7 +61,7 @@ class PluginErrorReporting : ErrorReportSubmitter() {
             labels = listOf("IDE Exception Pool", "bug"),
         )
 
-        val openedBrowser = openBrowser(issueUrl)
+        val openedBrowser = openBrowser && openBrowser(issueUrl)
 
         consumer.consume(
             SubmittedReportInfo(

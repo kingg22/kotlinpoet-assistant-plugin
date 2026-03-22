@@ -33,6 +33,7 @@ class PluginErrorReportingLightTest : BasePlatformTestCase() {
 
     override fun setUp() {
         super.setUp()
+        reporting.disableBrowserOpening()
         // Inject a real PluginDescriptor so pluginDescriptor.version is non-null.
         // We use the Kotlin plugin descriptor which is always available in IJ test platform.
         val kotlinPluginDescriptor = PluginManagerCore.getPlugin(PluginId.getId("org.jetbrains.kotlin"))
