@@ -1,7 +1,8 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.chain
 
-import com.intellij.testFramework.TestDataPath
+import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.kingg22.kotlinpoet.assistant.KotlinPoetTestDescriptor
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.BUILDER_METHOD_NAMES
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
@@ -16,24 +17,22 @@ import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
  * are needed. The KotlinPoet stub (`CodeBlock`, `FunSpec.Builder`) is inlined.
  */
 @KaAllowAnalysisOnEdt
-@TestDataPath("\$CONTENT_ROOT/testData")
 @Suppress("ktlint:standard:function-naming")
 class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
 
-    override fun getTestDataPath(): String = "src/test/testData"
+    override fun getProjectDescriptor(): LightProjectDescriptor = KotlinPoetTestDescriptor.projectDescriptor
 
     // ── Dot-chain tests ────────────────────────────────────────────────────────
 
     fun testFindPredecessorCall_simpleChain() {
-        val file =
-            configureKotlin(
-                """
+        val file = configureKotlin(
+            """
             import com.squareup.kotlinpoet.CodeBlock
             fun test() {
                 CodeBlock.builder().add("fmt", "arg").addStatement("stmt")
             }
         """,
-            )
+        )
 
         val calls = file.builderCalls()
         val addStatement = calls.first { it.calleeExpression?.text == "addStatement" }
@@ -45,15 +44,14 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
     }
 
     fun testFindPredecessorCall_firstInChain_returnsNull() {
-        val file =
-            configureKotlin(
-                """
+        val file = configureKotlin(
+            """
             import com.squareup.kotlinpoet.CodeBlock
             fun test() {
                 CodeBlock.builder().add("fmt")
             }
         """,
-            )
+        )
 
         val builderCall = file.builderCalls()
             .first { it.calleeExpression?.text == "builder" }
@@ -64,15 +62,14 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
     }
 
     fun testFindSuccessorCall_returnsNextInChain() {
-        val file =
-            configureKotlin(
-                """
+        val file = configureKotlin(
+            """
             import com.squareup.kotlinpoet.CodeBlock
             fun test() {
                 CodeBlock.builder().add("fmt").addStatement("stmt")
             }
         """,
-            )
+        )
 
         val add = file.builderCalls().first { it.calleeExpression?.text == "add" }
         val successor = CodeBlockPsiNavigator.findSuccessorCall(add)
@@ -81,9 +78,8 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
     }
 
     fun testWalkBackward_returnsAllPredecessors() {
-        val file =
-            configureKotlin(
-                """
+        val file = configureKotlin(
+            """
             import com.squareup.kotlinpoet.CodeBlock
             fun test() {
                 CodeBlock.builder()
@@ -92,7 +88,7 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
                     .addStatement("c")
             }
         """,
-            )
+        )
 
         val lastStmt = file.builderCalls().last { it.calleeExpression?.text == "addStatement" }
 
@@ -106,15 +102,14 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
     }
 
     fun testFullChainEndingAt_includesCallItself() {
-        val file =
-            configureKotlin(
-                """
+        val file = configureKotlin(
+            """
             import com.squareup.kotlinpoet.CodeBlock
             fun test() {
                 CodeBlock.builder().add("fmt").build()
             }
         """,
-            )
+        )
 
         val build = file.builderCalls().first { it.calleeExpression?.text == "build" }
         val chain = CodeBlockPsiNavigator.fullChainEndingAt(build)
@@ -126,9 +121,8 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
     }
 
     fun testFindChain_dotChain() {
-        val file =
-            configureKotlin(
-                """
+        val file = configureKotlin(
+            """
             import com.squareup.kotlinpoet.CodeBlock
             fun test() {
                 CodeBlock.builder()
@@ -136,7 +130,7 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
                     .build()
             }
         """,
-            )
+        )
 
         val addStatement = file.builderCalls()
             .first { it.calleeExpression?.text == "addStatement" }
@@ -149,9 +143,8 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
     // ── DSL (buildCodeBlock) tests ─────────────────────────────────────────────
 
     fun testFindChain_buildCodeBlockLambda_returnsAllStatements() {
-        val file =
-            configureKotlin(
-                """
+        val file = configureKotlin(
+            """
             import com.squareup.kotlinpoet.buildCodeBlock
             fun test() {
                 buildCodeBlock {
@@ -161,7 +154,7 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
                 }
             }
         """,
-            )
+        )
 
         // Get the 'add("first")' call
         val addFirst = file.builderCalls().first { it.calleeExpression?.text == "add" }
@@ -175,9 +168,8 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
     }
 
     fun testFindChain_buildCodeBlockLambda_fromMiddleCall_returnsAll() {
-        val file =
-            configureKotlin(
-                """
+        val file = configureKotlin(
+            """
             import com.squareup.kotlinpoet.buildCodeBlock
             fun test() {
                 buildCodeBlock {
@@ -187,7 +179,7 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
                 }
             }
         """,
-            )
+        )
 
         val addStatement = file.builderCalls()
             .first { it.calleeExpression?.text == "addStatement" }
@@ -200,15 +192,14 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
     }
 
     fun testFindChain_standaloneOf_returnsSingleCall() {
-        val file =
-            configureKotlin(
-                """
+        val file = configureKotlin(
+            """
             import com.squareup.kotlinpoet.CodeBlock
             fun test() {
                 val block = CodeBlock.of("val x = %L", 42)
             }
         """,
-            )
+        )
 
         val ofCall = file.builderCalls().first { it.calleeExpression?.text == "of" }
         val chain = CodeBlockPsiNavigator.findChain(ofCall)
@@ -220,7 +211,6 @@ class CodeBlockPsiNavigatorLightTest : BasePlatformTestCase() {
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private fun configureKotlin(@Language("kotlin") content: String): KtFile {
-        myFixture.configureByFile("stubs/KotlinPoet.kt")
         myFixture.configureByText("Test.kt", content.trimIndent())
         return myFixture.file as KtFile
     }

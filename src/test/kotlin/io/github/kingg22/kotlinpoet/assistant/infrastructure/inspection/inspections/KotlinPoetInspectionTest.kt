@@ -1,7 +1,9 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections
 
+import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.kingg22.kotlinpoet.assistant.KotlinPoetTestDescriptor
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 
@@ -26,11 +28,13 @@ class KotlinPoetInspectionTest : BasePlatformTestCase() {
 
     override fun getTestDataPath(): String = "src/test/testData"
 
+    override fun getProjectDescriptor(): LightProjectDescriptor = KotlinPoetTestDescriptor.projectDescriptor
+
     // ─── Missing argument ──────────────────────────────────────────────────────
 
     fun testMissingArgumentIsReported() {
         myFixture.enableInspections(MissingArgumentInspection())
-        myFixture.configureByFiles("inspections/MissingArgument.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/MissingArgument.kt")
         val problems = allowAnalysisOnEdt { myFixture.doHighlighting() }
         assertTrue(
             "Expected at least one problem for missing argument",
@@ -40,7 +44,7 @@ class KotlinPoetInspectionTest : BasePlatformTestCase() {
 
     fun testMissingArgumentNoFalsePositiveWhenArgsPresent() {
         myFixture.enableInspections(MissingArgumentInspection())
-        myFixture.configureByFiles("inspections/ValidNoProblems.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/ValidNoProblems.kt")
         val problems = allowAnalysisOnEdt {
             myFixture.doHighlighting()
         }.filter { it.inspectionToolId == "KotlinPoetMissingArgument" }
@@ -51,7 +55,7 @@ class KotlinPoetInspectionTest : BasePlatformTestCase() {
 
     fun testExtraRelativeArgumentIsReported() {
         myFixture.enableInspections(ExtraArgumentInspection())
-        myFixture.configureByFiles("inspections/ExtraArgument.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/ExtraArgument.kt")
         val problems = allowAnalysisOnEdt { myFixture.doHighlighting() }
         assertTrue(
             "Expected at least one problem for extra argument",
@@ -61,7 +65,7 @@ class KotlinPoetInspectionTest : BasePlatformTestCase() {
 
     fun testExtraRelativeArgumentQuickFix() {
         myFixture.enableInspections(ExtraArgumentInspection())
-        myFixture.configureByFiles("inspections/ExtraArgument.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/ExtraArgument.kt")
         allowAnalysisOnEdt { myFixture.doHighlighting() }
 
         val fix = myFixture.getAllQuickFixes().firstOrNull { it.text.contains("Remove extra argument") }
@@ -72,7 +76,7 @@ class KotlinPoetInspectionTest : BasePlatformTestCase() {
 
     fun testExtraPositionalArgumentIsReported() {
         myFixture.enableInspections(ExtraArgumentInspection())
-        myFixture.configureByFiles("inspections/ExtraArgumentPositional.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/ExtraArgumentPositional.kt")
         val problems = allowAnalysisOnEdt { myFixture.doHighlighting() }
         assertTrue(
             "Expected at least one problem for extra positional argument",
@@ -82,7 +86,7 @@ class KotlinPoetInspectionTest : BasePlatformTestCase() {
 
     fun testExtraPositionalArgumentQuickFix() {
         myFixture.enableInspections(ExtraArgumentInspection())
-        myFixture.configureByFiles("inspections/ExtraArgumentPositional.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/ExtraArgumentPositional.kt")
         allowAnalysisOnEdt { myFixture.doHighlighting() }
 
         val fix = myFixture.getAllQuickFixes().firstOrNull { it.text.contains("Remove extra argument") }
@@ -93,7 +97,7 @@ class KotlinPoetInspectionTest : BasePlatformTestCase() {
 
     fun testExtraArgumentNoFalsePositiveWhenArgsMatch() {
         myFixture.enableInspections(ExtraArgumentInspection())
-        myFixture.configureByFiles("inspections/ValidNoProblems.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/ValidNoProblems.kt")
         val problems = allowAnalysisOnEdt {
             myFixture.doHighlighting()
         }.filter { it.inspectionToolId == "KotlinPoetExtraArgument" }
@@ -104,7 +108,7 @@ class KotlinPoetInspectionTest : BasePlatformTestCase() {
 
     fun testTypeMismatchIsReported() {
         myFixture.enableInspections(TypeMismatchInspection())
-        myFixture.configureByFiles("inspections/TypeMismatch.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/TypeMismatch.kt")
         val problems = allowAnalysisOnEdt { myFixture.doHighlighting() }
         assertTrue(
             "Expected at least one type-mismatch problem",
@@ -114,7 +118,7 @@ class KotlinPoetInspectionTest : BasePlatformTestCase() {
 
     fun testTypeMismatchNoFalsePositiveOnCompatibleTypes() {
         myFixture.enableInspections(TypeMismatchInspection())
-        myFixture.configureByFiles("inspections/ValidNoProblems.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/ValidNoProblems.kt")
         val problems = allowAnalysisOnEdt {
             myFixture.doHighlighting()
         }.filter { it.inspectionToolId == "KotlinPoetTypeMismatch" }
@@ -125,7 +129,7 @@ class KotlinPoetInspectionTest : BasePlatformTestCase() {
 
     fun testNamedCaseIsReported() {
         myFixture.enableInspections(NamedCaseInspection())
-        myFixture.configureByFiles("inspections/NamedCaseInvalid.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/NamedCaseInvalid.kt")
         val problems = allowAnalysisOnEdt { myFixture.doHighlighting() }
         assertTrue(
             "Expected at least one named-case problem for uppercase key",
@@ -135,7 +139,7 @@ class KotlinPoetInspectionTest : BasePlatformTestCase() {
 
     fun testNamedCaseQuickFix() {
         myFixture.enableInspections(NamedCaseInspection())
-        myFixture.configureByFiles("inspections/NamedCaseInvalid.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/NamedCaseInvalid.kt")
         allowAnalysisOnEdt { myFixture.doHighlighting() }
 
         val fix = myFixture.getAllQuickFixes().firstOrNull { it.text.contains("food") }
@@ -146,7 +150,7 @@ class KotlinPoetInspectionTest : BasePlatformTestCase() {
 
     fun testNamedCaseNoFalsePositiveForLowercaseKeys() {
         myFixture.enableInspections(NamedCaseInspection())
-        myFixture.configureByFiles("inspections/ValidNoProblems.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/ValidNoProblems.kt")
         val problems = allowAnalysisOnEdt {
             myFixture.doHighlighting()
         }.filter { it.inspectionToolId == "KotlinPoetNamedCase" }

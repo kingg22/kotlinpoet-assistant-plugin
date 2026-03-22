@@ -1,7 +1,8 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.completion
 
-import com.intellij.testFramework.TestDataPath
+import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.kingg22.kotlinpoet.assistant.KotlinPoetTestDescriptor
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
@@ -25,16 +26,12 @@ import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
  * context; for `checkCompletionVariants` / `completeBasic` we rely on the IntelliJ
  * test fixture which exercises the full contributor chain.
  */
-@TestDataPath("\$CONTENT_ROOT/testData")
 @KaAllowAnalysisOnEdt
 class KotlinPoetCompletionContributorTest : BasePlatformTestCase() {
 
     override fun getTestDataPath(): String = "src/test/testData"
 
-    override fun setUp() {
-        super.setUp()
-        myFixture.configureByFile("stubs/KotlinPoet.kt")
-    }
+    override fun getProjectDescriptor(): LightProjectDescriptor = KotlinPoetTestDescriptor.projectDescriptor
 
     // ── Helper ─────────────────────────────────────────────────────────────────
 

@@ -2,8 +2,10 @@ package io.github.kingg22.kotlinpoet.assistant.infrastructure.references
 
 import com.intellij.model.psi.PsiSymbolReferenceHints
 import com.intellij.psi.util.parentOfType
+import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.kingg22.kotlinpoet.assistant.KotlinPoetTestDescriptor
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
@@ -12,10 +14,13 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 @TestDataPath("\$CONTENT_ROOT/testData")
 @KaAllowAnalysisOnEdt
 class KnownLimitationsLightTest : BasePlatformTestCase() {
+
     override fun getTestDataPath(): String = "src/test/testData"
 
+    override fun getProjectDescriptor(): LightProjectDescriptor = KotlinPoetTestDescriptor.projectDescriptor
+
     fun testReferenceInsideTrimIndentDoesNotResolve() {
-        myFixture.configureByFiles("limitations/TrimIndent.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("limitations/TrimIndent.kt")
         val file = myFixture.file
         val caretOffset = myFixture.caretOffset
         val element = file.findElementAt(caretOffset) ?: error("No PSI element at caret")

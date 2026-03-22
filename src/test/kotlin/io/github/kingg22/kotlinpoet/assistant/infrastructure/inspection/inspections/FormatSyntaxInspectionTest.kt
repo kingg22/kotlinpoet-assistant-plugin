@@ -1,7 +1,9 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections
 
+import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.kingg22.kotlinpoet.assistant.KotlinPoetTestDescriptor
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 
@@ -20,6 +22,8 @@ class FormatSyntaxInspectionTest : BasePlatformTestCase() {
 
     override fun getTestDataPath(): String = "src/test/testData"
 
+    override fun getProjectDescriptor(): LightProjectDescriptor = KotlinPoetTestDescriptor.projectDescriptor
+
     override fun setUp() {
         super.setUp()
         myFixture.enableInspections(FormatSyntaxInspection())
@@ -28,13 +32,13 @@ class FormatSyntaxInspectionTest : BasePlatformTestCase() {
     // ─── Dangling % ───────────────────────────────────────────────────────────
 
     fun testDanglingPercentIsReported() {
-        myFixture.configureByFiles("inspections/DanglingPercent.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/DanglingPercent.kt")
         val problems = allowAnalysisOnEdt { myFixture.doHighlighting() }
         assertTrue("Expected a dangling-percent warning", problems.any { it.description != null })
     }
 
     fun testDanglingPercentEscapeQuickFix() {
-        myFixture.configureByFiles("inspections/DanglingPercent.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/DanglingPercent.kt")
         allowAnalysisOnEdt { myFixture.doHighlighting() }
 
         val fix = myFixture.getAllQuickFixes().firstOrNull { it.text.contains("%%") }
@@ -46,13 +50,13 @@ class FormatSyntaxInspectionTest : BasePlatformTestCase() {
     // ─── Unknown placeholder type ─────────────────────────────────────────────
 
     fun testUnknownTypeIsReported() {
-        myFixture.configureByFiles("inspections/UnknownType.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/UnknownType.kt")
         val problems = allowAnalysisOnEdt { myFixture.doHighlighting() }
         assertTrue("Expected an unknown-type warning", problems.any { it.description != null })
     }
 
     fun testUnknownTypeRemoveQuickFix() {
-        myFixture.configureByFiles("inspections/UnknownType.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/UnknownType.kt")
         allowAnalysisOnEdt { myFixture.doHighlighting() }
 
         val fix = myFixture.getAllQuickFixes().firstOrNull { it.text.contains("Remove") }
@@ -64,13 +68,13 @@ class FormatSyntaxInspectionTest : BasePlatformTestCase() {
     // ─── Invalid positional index ─────────────────────────────────────────────
 
     fun testInvalidIndexIsReported() {
-        myFixture.configureByFiles("inspections/InvalidIndex.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/InvalidIndex.kt")
         val problems = allowAnalysisOnEdt { myFixture.doHighlighting() }
         assertTrue("Expected an invalid-index warning", problems.any { it.description != null })
     }
 
     fun testInvalidIndexFixQuickFix() {
-        myFixture.configureByFiles("inspections/InvalidIndex.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/InvalidIndex.kt")
         allowAnalysisOnEdt { myFixture.doHighlighting() }
 
         val fix = myFixture.getAllQuickFixes().firstOrNull { it.text.contains("Fix index") }
@@ -82,7 +86,7 @@ class FormatSyntaxInspectionTest : BasePlatformTestCase() {
     // ─── No false positives on valid code ─────────────────────────────────────
 
     fun testNoWarningsOnValidRelativeFormat() {
-        myFixture.configureByFiles("inspections/ValidNoProblems.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("inspections/ValidNoProblems.kt")
         val problems = allowAnalysisOnEdt {
             myFixture.doHighlighting()
         }.filter { it.inspectionToolId == "KotlinPoetFormatSyntax" }

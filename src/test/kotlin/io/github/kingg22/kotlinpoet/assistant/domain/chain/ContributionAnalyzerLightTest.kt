@@ -1,7 +1,8 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.chain
 
-import com.intellij.testFramework.TestDataPath
+import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.kingg22.kotlinpoet.assistant.KotlinPoetTestDescriptor
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol.SymbolType
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
@@ -20,16 +21,14 @@ import org.junit.jupiter.api.Assertions.assertInstanceOf
  * - `NestedCodeBlockPart` construction when `%L` receives a CodeBlock expression
  * - Variable reference following for nested CodeBlocks
  */
-@TestDataPath("\$CONTENT_ROOT/testData")
 @KaAllowAnalysisOnEdt
 class ContributionAnalyzerLightTest : BasePlatformTestCase() {
 
-    override fun getTestDataPath(): String = "src/test/testData"
+    override fun getProjectDescriptor(): LightProjectDescriptor = KotlinPoetTestDescriptor.projectDescriptor
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 
     private fun configureKotlin(@Language("kotlin") content: String): KtFile {
-        myFixture.configureByFiles("stubs/KotlinPoet.kt")
         myFixture.configureByText("Test.kt", content.trimIndent())
         return myFixture.file as KtFile
     }

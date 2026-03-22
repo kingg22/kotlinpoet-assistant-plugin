@@ -4,8 +4,10 @@ import com.intellij.model.psi.PsiSymbolReferenceHints
 import com.intellij.model.psi.PsiSymbolReferenceService
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.kingg22.kotlinpoet.assistant.KotlinPoetTestDescriptor
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
@@ -14,10 +16,13 @@ import org.junit.Assert.assertNotEquals
 @TestDataPath("\$CONTENT_ROOT/testData")
 @KaAllowAnalysisOnEdt
 class KotlinPoetReferenceProviderTest : BasePlatformTestCase() {
+
     override fun getTestDataPath(): String = "src/test/testData"
 
+    override fun getProjectDescriptor(): LightProjectDescriptor = KotlinPoetTestDescriptor.projectDescriptor
+
     fun testPlaceholderReferencesAreDistinct() {
-        myFixture.configureByFiles("references/MultiplePlaceholders.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("references/MultiplePlaceholders.kt")
         val file = myFixture.file
         val template = PsiTreeUtil.findChildOfType(file, KtStringTemplateExpression::class.java)
         assertNotNull(template)
@@ -37,7 +42,7 @@ class KotlinPoetReferenceProviderTest : BasePlatformTestCase() {
     }
 
     fun testNamedMapOfReferenceResolvesToValue() {
-        myFixture.configureByFiles("references/NamedMapOf.kt", "stubs/KotlinPoet.kt")
+        myFixture.configureByFiles("references/NamedMapOf.kt")
         val file = myFixture.file
         val template = PsiTreeUtil.findChildOfType(file, KtStringTemplateExpression::class.java)
         assertNotNull(template)

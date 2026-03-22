@@ -1,7 +1,8 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation
 
-import com.intellij.testFramework.TestDataPath
+import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.kingg22.kotlinpoet.assistant.KotlinPoetTestDescriptor
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
@@ -16,18 +17,16 @@ import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
  * The caret position (`<caret>`) drives the `offset` passed to
  * [KotlinPoetDocumentationTargetProvider.documentationTargets].
  */
-@TestDataPath("\$CONTENT_ROOT/testData")
 @KaAllowAnalysisOnEdt
 class KotlinPoetDocumentationTargetProviderTest : BasePlatformTestCase() {
 
-    override fun getTestDataPath(): String = "src/test/testData"
+    override fun getProjectDescriptor(): LightProjectDescriptor = KotlinPoetTestDescriptor.projectDescriptor
 
     private val provider = KotlinPoetDocumentationTargetProvider()
 
     // ── Helper ─────────────────────────────────────────────────────────────────
 
     private fun targetsAt(@Language("kotlin") content: String): List<KotlinPoetDocumentationTarget> {
-        myFixture.configureByFiles("stubs/KotlinPoet.kt")
         myFixture.configureByText("Test.kt", content.trimIndent())
         val offset = myFixture.caretOffset
         return allowAnalysisOnEdt {
