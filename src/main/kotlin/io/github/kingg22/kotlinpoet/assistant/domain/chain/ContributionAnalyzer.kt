@@ -261,7 +261,7 @@ private fun buildFormatParts(
         val part = when {
             resolved != null -> ResolvedPlaceholder(
                 placeholder = bound.placeholder,
-                resolvedText = formatForKind(bound.placeholder.binding, resolved),
+                resolvedText = formatForKind(bound.placeholder, resolved),
                 argSpan = bound.argument?.span,
                 origin = origin,
             )
@@ -417,8 +417,14 @@ private fun controlFlowSuffix(rawFormat: String): String {
 }
 
 // %name:L emits the raw name identifier without quotes
-private fun formatForKind(binding: PlaceholderBinding, resolved: ResolvedText): String = when (binding) {
-    is PlaceholderBinding.Named -> StringUtil.unquoteString(resolved.displayText)
+private fun formatForKind(placeholder: PlaceholderSpec, resolved: ResolvedText): String = when (placeholder.binding) {
+    is PlaceholderBinding.Named ->
+        if (placeholder.kind != FormatKind.STRING && placeholder.kind != FormatKind.STRING_TEMPLATE) {
+            StringUtil.unquoteString(resolved.displayText)
+        } else {
+            resolved.displayText
+        }
+
     else -> resolved.displayText
 }
 
