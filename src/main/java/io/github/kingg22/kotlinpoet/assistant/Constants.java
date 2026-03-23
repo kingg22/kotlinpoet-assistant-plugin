@@ -14,7 +14,7 @@ public final class Constants {
 
     private static final FqName KOTLINPOET_PACKAGE = new FqName("com.squareup.kotlinpoet");
 
-    public static final @NotNull Set<String> KOTLINPOET_CALLS =
+    public static final @NotNull Set</*@NotNull */ String> KOTLINPOET_CALLS =
             Set.of("addStatement", "addCode", "CodeBlock.of", "beginControlFlow", "addNamed", "add");
 
     public static final class ClassIds {
@@ -40,7 +40,7 @@ public final class Constants {
         public static final ClassId FILESPEC_BUILDER =
                 new ClassId(KOTLINPOET_PACKAGE, new FqName("FileSpec.Builder"), false);
 
-        public static @NotNull ClassId[] ALL = {
+        public static @NotNull ClassId /*@NotNull */[] ALL = {
             CODE_BLOCK,
             CODE_BLOCK_BUILDER,
             CODE_BLOCK_COMPANION,
