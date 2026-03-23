@@ -77,10 +77,6 @@ dependencies {
 
 // Configure IntelliJ Platform Gradle Plugin - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
 intellijPlatform {
-    // Doesn't have settings
-    // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-tasks.html#buildSearchableOptions
-    buildSearchableOptions.set(false)
-
     pluginConfiguration {
         name = providers.gradleProperty("pluginName")
         version = providers.gradleProperty("pluginVersion")
@@ -176,16 +172,11 @@ intellijPlatformTesting {
             task {
                 jvmArgumentProviders += CommandLineArgumentProvider {
                     listOf(
-                        "-Drobot-server.port=8082",
                         "-Dide.mac.message.dialogs.as.sheets=false",
                         "-Djb.privacy.policy.text=<!--999.999-->",
                         "-Djb.consents.confirmation.enabled=false",
                     )
                 }
-            }
-
-            plugins {
-                robotServerPlugin()
             }
         }
     }
