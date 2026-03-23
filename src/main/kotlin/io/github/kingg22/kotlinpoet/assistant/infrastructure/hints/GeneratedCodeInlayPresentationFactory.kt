@@ -11,6 +11,7 @@ import com.intellij.ide.ui.AntialiasingType
 import com.intellij.ide.ui.UISettings
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.DefaultActionGroup
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.DefaultLanguageHighlighterColors
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.editor.HighlighterColors
@@ -260,7 +261,16 @@ private class CodeInlay(
         val attributesToUse = TextAttributes.merge(ownAttributes, attributes)
         val savedHint = g.getRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING)
         try {
-            val foreground = attributesToUse.foregroundColor ?: error("ForegroundColor cannot be null")
+            val foreground = attributesToUse.foregroundColor
+                ?: ownAttributes.foregroundColor
+                ?: attributes.foregroundColor
+                ?: run {
+                    thisLogger().warn(
+                        "No foreground color for inlay was found: '$text', attributes to use: $attributesToUse, attributes: $attributes, own: $ownAttributes",
+                        Throwable(),
+                    )
+                    return
+                }
             val metric = textMetrics
             val font = metric.font
             g.font = font
