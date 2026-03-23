@@ -2,6 +2,7 @@ import com.diffplug.spotless.LineEnding
 import kotlinx.kover.gradle.plugin.dsl.AggregationType
 import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
 import org.jetbrains.changelog.Changelog
+import org.jetbrains.changelog.ChangelogPluginConstants
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -91,12 +92,24 @@ intellijPlatform {
             val start = "<!-- Plugin description -->"
             val end = "<!-- Plugin description end -->"
 
-            with(text.lines()) {
-                if (!containsAll(listOf(start, end))) {
-                    throw GradleException("Plugin description section not found in README.md:\n$start ... $end")
-                }
-                markdownToHTML(subList(indexOf(start) + 1, indexOf(end)).joinToString("\n"))
+            val textLines = text.lines().toMutableList()
+            if (!textLines.containsAll(listOf(start, end))) {
+                throw GradleException("Plugin description section not found in README.md:\n$start ... $end")
             }
+
+            markdownToHTML(
+                textLines.subList(
+                    textLines.indexOf(start) + 1,
+                    textLines.indexOf(end),
+                ).apply {
+                    // GitHub Flavored Markdown (GFM) is used in README.md
+                    remove("> [!NOTE]")
+                    remove("> [!WARNING]")
+                    remove("> [!TIP]")
+                    remove("> [!IMPORTANT]")
+                    remove("> [!CAUTION]")
+                }.joinToString("\n"),
+            )
         }.apply { if (!isPresent) throw GradleException("Plugin description section not found in README.md") }
 
         val changelog = project.changelog // local variable for configuration cache compatibility
@@ -143,6 +156,7 @@ intellijPlatform {
 // Configure Gradle Changelog Plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin
 changelog {
     versionPrefix = ""
+    groups = ChangelogPluginConstants.GROUPS + "Technical"
     repositoryUrl = providers.gradleProperty("pluginRepositoryUrl")
 }
 
