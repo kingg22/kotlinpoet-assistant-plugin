@@ -4,6 +4,7 @@ import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.kingg22.kotlinpoet.assistant.KotlinPoetTestDescriptor
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol.SymbolType
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.ContributionAnalyzer
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
@@ -13,7 +14,7 @@ import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 
 /**
- * Integration tests for [ContributionAnalyzer] using the IntelliJ light platform.
+ * Integration tests for [io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.ContributionAnalyzer] using the IntelliJ light platform.
  *
  * These tests verify:
  * - Scalar argument resolution (string, int, class literal)

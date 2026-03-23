@@ -1,6 +1,7 @@
-package io.github.kingg22.kotlinpoet.assistant.domain.chain
+package io.github.kingg22.kotlinpoet.assistant.infrastructure.chain
 
-import io.github.kingg22.kotlinpoet.assistant.domain.chain.ArgumentTextResolver.resolve
+import io.github.kingg22.kotlinpoet.assistant.domain.chain.ResolvedText
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.ArgumentTextResolver.resolve
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.unescaped
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.analyze
@@ -28,7 +29,7 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression
  *    and constant expressions (e.g., `1 + 2` → `3`).
  * 3. **Class literal** (`SomeClass::class` or `SomeClass::class.java`).
  * 4. **Name reference** to a `val`/`var` with a literal initializer — one hop via K2.
- * 5. **Fallback**: `null` — caller produces [EmittedPart.UnresolvedPlaceholder].
+ * 5. **Fallback**: `null` — caller produces [io.github.kingg22.kotlinpoet.assistant.domain.chain.EmittedPart.UnresolvedPlaceholder].
  *
  * ## Threading
  *

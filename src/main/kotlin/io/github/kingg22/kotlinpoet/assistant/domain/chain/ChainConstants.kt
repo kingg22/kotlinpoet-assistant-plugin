@@ -4,7 +4,7 @@ package io.github.kingg22.kotlinpoet.assistant.domain.chain
  * Names of `CodeBlock.Builder` and `CodeBlock.Companion` methods that the chain
  * analysis understands.
  *
- * Lives in the domain layer so that both domain classes ([ContributionAnalyzer]) and
+ * Lives in the domain layer so that both domain classes ([io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.ContributionAnalyzer]) and
  * infrastructure classes ([io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator])
  * can import it without creating upward dependencies.
  */

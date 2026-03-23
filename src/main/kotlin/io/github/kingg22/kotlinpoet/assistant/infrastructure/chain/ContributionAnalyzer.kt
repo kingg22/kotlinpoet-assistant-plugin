@@ -1,14 +1,14 @@
-package io.github.kingg22.kotlinpoet.assistant.domain.chain
+package io.github.kingg22.kotlinpoet.assistant.infrastructure.chain
 
 import com.intellij.openapi.util.text.StringUtil
 import com.intellij.util.concurrency.annotations.RequiresReadLock
+import io.github.kingg22.kotlinpoet.assistant.domain.chain.*
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.EmittedPart.ControlSymbolPart
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.EmittedPart.FormatLiteral
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.EmittedPart.NestedCodeBlockPart
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.EmittedPart.ResolvedPlaceholder
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.EmittedPart.UnresolvedPlaceholder
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.MethodSemantics.*
-import io.github.kingg22.kotlinpoet.assistant.domain.extractor.extractMapEntry
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.BoundPlaceholder
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol.SymbolType
@@ -17,10 +17,10 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.FormatKind
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.KotlinPoetAnalysis
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.extractMapEntry
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.resolveNamedTarget
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.associateNotNull
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.references.resolveNamedTarget
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
@@ -32,7 +32,7 @@ import org.jetbrains.kotlin.psi.KtNameReferenceExpression
 import org.jetbrains.kotlin.psi.KtProperty
 
 /**
- * Produces a [MethodEmissionContribution] from a single `KtCallExpression`.
+ * Produces a [io.github.kingg22.kotlinpoet.assistant.domain.chain.MethodEmissionContribution] from a single `KtCallExpression`.
  *
  * ## Data sources (in priority order)
  *
@@ -43,22 +43,22 @@ import org.jetbrains.kotlin.psi.KtProperty
  *    for simple scalar arguments.
  * 3. **Nested CodeBlock expansion** — when a `%L` argument is itself a CodeBlock (inline
  *    chain or variable reference), the chain is recursively analyzed and emitted as a
- *    [EmittedPart.NestedCodeBlockPart].
+ *    [NestedCodeBlockPart].
  *
  * ## Named map arguments
  *
  * For `addNamed` calls, the [ArgumentSource.NamedMap] in the cached analysis already
- * contains the resolved `ArgumentValue` entries (populated by [io.github.kingg22.kotlinpoet.assistant.domain.extractor.NamedFormatExtractor]).
+ * contains the resolved `ArgumentValue` entries (populated by [io.github.kingg22.kotlinpoet.assistant.infrastructure.extractor.NamedFormatExtractor]).
  * Each `ArgumentValue.span` points to the value expression inside the `mapOf(...)` call.
  * [getArgExpression] uses a **span-exact** PSI lookup so the correct leaf expression is
  * found even when multiple entries share a map literal.
  *
  * ## Custom delegating methods
  *
- * Methods recognized by [io.github.kingg22.kotlinpoet.assistant.domain.extractor.KotlinPoetCallTargetResolver]
+ * Methods recognized by [io.github.kingg22.kotlinpoet.assistant.infrastructure.extractor.KotlinPoetCallTargetResolver]
  * as delegating to a KotlinPoet call are handled transparently: `getCachedAnalysis`
  * returns the analysis with `renderHint.methodName` set to the delegated method name,
- * and [MethodSemanticsClassifier] classifies it normally.
+ * and [io.github.kingg22.kotlinpoet.assistant.domain.chain.MethodSemanticsClassifier] classifies it normally.
  *
  * ## Threading
  *
@@ -173,7 +173,7 @@ private fun buildErrorContribution(
  *
  * **Named** (`addNamed`): the `ArgumentValue.span` inside the [ArgumentSource.NamedMap]
  * already points to the value expression in the `mapOf(...)` call (set by
- * [io.github.kingg22.kotlinpoet.assistant.domain.extractor.NamedFormatExtractor]).
+ * [io.github.kingg22.kotlinpoet.assistant.infrastructure.extractor.NamedFormatExtractor]).
  * [getArgExpression] uses an exact-span PSI lookup to find that expression precisely.
  */
 private fun resolveArgTexts(
@@ -259,9 +259,9 @@ private fun buildParts(
 /**
  * Walks the format string left-to-right, emitting:
  * - Literal text segments between placeholders
- * - [EmittedPart.ResolvedPlaceholder] when the argument resolved to a scalar value
- * - [EmittedPart.NestedCodeBlockPart] when `%L` receives a CodeBlock expression
- * - [EmittedPart.UnresolvedPlaceholder] for everything else
+ * - [ResolvedPlaceholder] when the argument resolved to a scalar value
+ * - [NestedCodeBlockPart] when `%L` receives a CodeBlock expression
+ * - [UnresolvedPlaceholder] for everything else
  */
 private fun buildFormatParts(
     call: KtCallExpression,
@@ -306,7 +306,7 @@ private fun buildFormatParts(
 // ── Nested CodeBlock expansion ─────────────────────────────────────────────────
 
 /**
- * Attempts to build a [EmittedPart.NestedCodeBlockPart] for a `%L` placeholder whose
+ * Attempts to build a [NestedCodeBlockPart] for a `%L` placeholder whose
  * argument expression is — or resolves to — a CodeBlock builder chain.
  *
  * ## Detection
@@ -317,8 +317,8 @@ private fun buildFormatParts(
  *    resolves via K2 to a `val`/`var` whose initializer is an inline CodeBlock chain.
  *
  * Deeper indirection (variable pointing to another variable) is not followed to
- * avoid excessive K2 sessions; the result is [EmittedPart.UnresolvedPlaceholder] with
- * [UnresolvedReason.EXTERNAL_VARIABLE].
+ * avoid excessive K2 sessions; the result is [UnresolvedPlaceholder] with
+ * [io.github.kingg22.kotlinpoet.assistant.domain.chain.UnresolvedReason.EXTERNAL_VARIABLE].
  *
  * @param maxDepth Guards against infinite recursion in pathological self-referential code.
  */
@@ -443,7 +443,7 @@ private fun KtCallExpression.toTextSpan(): TextSpan = TextSpan.of(textRange.star
 
 /**
  * Returns `true` if [this] expression is the root of an inline CodeBlock chain:
- * - A `KtCallExpression` whose callee is in [BUILDER_METHOD_NAMES] (e.g., `CodeBlock.of(...)`,
+ * - A `KtCallExpression` whose callee is in [io.github.kingg22.kotlinpoet.assistant.domain.chain.BUILDER_METHOD_NAMES] (e.g., `CodeBlock.of(...)`,
  *   `buildCodeBlock { }`)
  * - A `KtDotQualifiedExpression` whose selector is a known builder call (e.g., `.build()`)
  */

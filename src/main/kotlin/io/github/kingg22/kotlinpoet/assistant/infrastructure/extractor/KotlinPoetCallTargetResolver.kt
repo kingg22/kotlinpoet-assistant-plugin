@@ -1,6 +1,7 @@
-package io.github.kingg22.kotlinpoet.assistant.domain.extractor
+package io.github.kingg22.kotlinpoet.assistant.infrastructure.extractor
 
 import io.github.kingg22.kotlinpoet.assistant.Constants
+import io.github.kingg22.kotlinpoet.assistant.domain.extractor.KotlinPoetCallTarget
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull

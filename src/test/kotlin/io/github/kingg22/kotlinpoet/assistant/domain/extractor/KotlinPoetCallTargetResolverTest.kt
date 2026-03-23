@@ -4,6 +4,8 @@ import com.intellij.testFramework.LightProjectDescriptor
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import io.github.kingg22.kotlinpoet.assistant.KotlinPoetTestDescriptor
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.extractMapEntry
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.extractor.KotlinPoetCallTargetResolver
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
@@ -13,7 +15,7 @@ import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 
 /**
- * Light-platform integration tests for [resolveFormatTextOrNull], [extractMapEntry] and [KotlinPoetCallTargetResolver].
+ * Light-platform integration tests for [resolveFormatTextOrNull], [extractMapEntry] and [io.github.kingg22.kotlinpoet.assistant.infrastructure.extractor.KotlinPoetCallTargetResolver].
  *
  * ## KaAnalysisUtils
  * - [extractMapEntry] correctly extracts key/value from `"key" to value` (infix),

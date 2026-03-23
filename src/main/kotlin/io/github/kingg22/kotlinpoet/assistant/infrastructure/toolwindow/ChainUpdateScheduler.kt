@@ -14,11 +14,11 @@ import com.intellij.openapi.util.Key
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.util.concurrency.AppExecutorUtil
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.ChainViolation
-import io.github.kingg22.kotlinpoet.assistant.domain.chain.ContributionAnalyzer
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.EmissionState
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.MethodEmissionContribution
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.ContributionAnalyzer
 import javax.swing.Timer
 
 // ── Update scheduler ───────────────────────────────────────────────────────────

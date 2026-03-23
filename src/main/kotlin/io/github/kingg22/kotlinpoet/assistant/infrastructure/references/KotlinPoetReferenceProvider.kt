@@ -13,13 +13,12 @@ import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.ExceptionUtil
-import io.github.kingg22.kotlinpoet.assistant.domain.extractor.extractMapEntry
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.putCachedAnalysis
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.resolveNamedTarget
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.toTextRange
-import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
@@ -58,9 +57,14 @@ class KotlinPoetReferenceProvider : PsiSymbolReferenceProvider {
                 val targetExpression: KtExpression = when {
                     argValue != null -> resolvePsiTarget(call, args, argValue)
 
-                    placeholder.binding is PlaceholderSpec.PlaceholderBinding.Named && args.size >= 2 ->
-                        resolveNamedTarget(args[1].getArgumentExpression(), placeholder.binding.name)
-                            ?: args[1].getArgumentExpression()
+                    placeholder.binding is PlaceholderSpec.PlaceholderBinding.Named && args.size >= 2 -> {
+                        val entryExpr = if (!DumbService.isDumb(call.project)) {
+                            resolveNamedTarget(args[1].getArgumentExpression(), placeholder.binding.name)
+                        } else {
+                            null
+                        }
+                        entryExpr ?: args[1].getArgumentExpression()
+                    }
 
                     else -> continue
                 } ?: continue
@@ -149,20 +153,6 @@ private fun resolvePsiTarget(
     // implies isPositional
     if (index != null && index in psiArgs.indices) {
         return psiArgs[index].getArgumentExpression()
-    }
-    return null
-}
-
-fun resolveNamedTarget(mapExpression: KtExpression?, name: String): KtExpression? {
-    val call = mapExpression as? KtCallExpression ?: return null
-    if (DumbService.isDumb(mapExpression.project)) return null
-    analyze(mapExpression) {
-        val mapArgs = call.valueArguments
-        for (entryArg in mapArgs) {
-            val entryExpr = entryArg.getArgumentExpression()
-            val (key, valueExpr) = extractMapEntry(entryExpr) ?: continue
-            if (key == name) return valueExpr
-        }
     }
     return null
 }

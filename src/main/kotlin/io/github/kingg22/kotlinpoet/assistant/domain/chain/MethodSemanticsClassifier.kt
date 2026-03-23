@@ -34,7 +34,7 @@ object MethodSemanticsClassifier {
      * Classifies [methodName] into a [MethodSemantics].
      *
      * The receiver's fully qualified name is intentionally not required here —
-     * [io.github.kingg22.kotlinpoet.assistant.domain.extractor.KotlinPoetCallTargetResolver]
+     * [io.github.kingg22.kotlinpoet.assistant.infrastructure.extractor.KotlinPoetCallTargetResolver]
      * already filters for KotlinPoet calls before this is invoked.
      *
      * @param methodName The simple name of the KotlinPoet builder method.

@@ -1,15 +1,12 @@
-package io.github.kingg22.kotlinpoet.assistant.domain.extractor
+package io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis
 
-import io.github.kingg22.kotlinpoet.assistant.adapters.psi.PsiFormatTextExtractor
-import io.github.kingg22.kotlinpoet.assistant.domain.text.FormatText
 import org.jetbrains.kotlin.analysis.api.KaSession
+import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
-
-fun resolveFormatTextOrNull(ktExpression: KtExpression?): FormatText? = PsiFormatTextExtractor.extract(ktExpression)
 
 fun KaSession.extractMapEntry(entryExpr: KtExpression?): Pair<String, KtExpression?>? {
     // En Kotlin, "key to value" es una llamada infix a la función 'to'
@@ -44,4 +41,17 @@ fun KaSession.extractMapEntry(entryExpr: KtExpression?): Pair<String, KtExpressi
 
         else -> null
     }
+}
+
+fun resolveNamedTarget(mapExpression: KtExpression?, name: String): KtExpression? {
+    val call = mapExpression as? KtCallExpression ?: return null
+    analyze(mapExpression) {
+        val mapArgs = call.valueArguments
+        for (entryArg in mapArgs) {
+            val entryExpr = entryArg.getArgumentExpression()
+            val (key, valueExpr) = extractMapEntry(entryExpr) ?: continue
+            if (key == name) return valueExpr
+        }
+    }
+    return null
 }

@@ -7,11 +7,11 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
-import io.github.kingg22.kotlinpoet.assistant.domain.chain.ContributionAnalyzer
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.MethodEmissionContribution
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.MethodSemantics
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.renderChain
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.ContributionAnalyzer
 import org.jetbrains.kotlin.psi.KtCallExpression
 import java.awt.Cursor
 

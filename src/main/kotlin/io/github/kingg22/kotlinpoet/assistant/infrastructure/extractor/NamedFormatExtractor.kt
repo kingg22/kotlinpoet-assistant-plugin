@@ -1,10 +1,14 @@
-package io.github.kingg22.kotlinpoet.assistant.domain.extractor
+package io.github.kingg22.kotlinpoet.assistant.infrastructure.extractor
 
+import io.github.kingg22.kotlinpoet.assistant.adapters.psi.PsiFormatTextExtractor.extract
 import io.github.kingg22.kotlinpoet.assistant.adapters.types.ArgumentTypeMapper
+import io.github.kingg22.kotlinpoet.assistant.domain.extractor.KotlinPoetCallContext
+import io.github.kingg22.kotlinpoet.assistant.domain.extractor.RenderHint
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
 import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParser
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.extractMapEntry
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
@@ -21,7 +25,7 @@ class NamedFormatExtractor(private val parser: StringFormatParser) : FormatConte
 
             // 1. Extraer Formato
             val formatArgExpr = args[0].getArgumentExpression() ?: return@analyze null
-            val formatText = resolveFormatTextOrNull(formatArgExpr) ?: return@analyze null
+            val formatText = extract(formatArgExpr) ?: return@analyze null
 
             val formatModel = parser.parse(formatText, true, target.methodName)
 

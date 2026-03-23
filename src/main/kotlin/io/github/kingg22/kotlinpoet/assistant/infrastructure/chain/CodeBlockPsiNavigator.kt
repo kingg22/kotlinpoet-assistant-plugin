@@ -180,7 +180,7 @@ private fun findLambdaChain(call: KtCallExpression): List<KtCallExpression>? {
  * Returns `true` if [call] is a recognized CodeBlock builder call:
  * - Its callee is in [BUILDER_METHOD_NAMES], **or**
  * - The analysis cache already has an entry for it (custom delegating method
- *   recognized by [io.github.kingg22.kotlinpoet.assistant.domain.extractor.KotlinPoetCallTargetResolver]).
+ *   recognized by [io.github.kingg22.kotlinpoet.assistant.infrastructure.extractor.KotlinPoetCallTargetResolver]).
  *
  * The cache check uses `extractOnMissing = false` to avoid triggering K2 analysis
  * during the PSI walk — we only trust what is already known.
