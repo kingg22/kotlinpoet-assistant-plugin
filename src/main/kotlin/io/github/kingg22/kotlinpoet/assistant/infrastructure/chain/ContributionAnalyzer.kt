@@ -270,36 +270,117 @@ private fun buildFormatParts(
     origin: EmissionOrigin,
 ): List<EmittedPart> {
     val parts = mutableListOf<EmittedPart>()
-    var remaining = analysis.format.text.asString()
 
-    for (bound in analysis.bounds) {
-        val token = bound.placeholder.tokenText()
-        val idx = remaining.indexOf(token)
-        if (idx < 0) continue
+    val text = analysis.formatText.asString()
 
-        if (idx > 0) parts += FormatLiteral(remaining.substring(0, idx), origin)
+    // Offset base del format string dentro del archivo (PSI)
+    val baseOffset = analysis.formatText.absoluteStartOffset
+    var cursor = 0
 
-        val resolved = argTexts[bound.placeholder]
-        val part = when {
-            resolved != null -> ResolvedPlaceholder(
-                placeholder = bound.placeholder,
-                resolvedText = formatForKind(bound.placeholder, resolved),
-                argSpan = bound.argument?.span,
-                origin = origin,
-            )
+    val bounds = analysis.bounds.sortedBy { it.placeholder.span.start }
+    val symbols = analysis.controlSymbols.sortedBy { it.span.start }
 
-            // For %L only: try to expand a nested CodeBlock before giving up
-            bound.placeholder.kind == FormatKind.LITERAL ->
-                tryBuildNestedPart(call, bound, origin)
-                    ?: UnresolvedPlaceholder(bound.placeholder, unresolvedReason(bound), origin)
+    var bIndex = 0
+    var sIndex = 0
 
-            else -> UnresolvedPlaceholder(bound.placeholder, unresolvedReason(bound), origin)
+    fun toRelativeOffset(absolute: Int): Int = absolute - baseOffset
+
+    fun emitLiteral(untilAbsolute: Int) {
+        val until = toRelativeOffset(untilAbsolute)
+
+        if (until > cursor) {
+            val safeEnd = until.coerceAtMost(text.length)
+            if (cursor in 0..safeEnd) {
+                parts += FormatLiteral(text.substring(cursor, safeEnd), origin)
+            }
+            cursor = safeEnd
         }
-        parts += part
-        remaining = remaining.substring(idx + token.length)
     }
 
-    if (remaining.isNotEmpty()) parts += FormatLiteral(remaining, origin)
+    while (bIndex < bounds.size || sIndex < symbols.size) {
+        val nextBound = bounds.getOrNull(bIndex)
+        val nextSymbol = symbols.getOrNull(sIndex)
+
+        val nextBoundPosAbs = nextBound?.placeholder?.span?.start ?: Int.MAX_VALUE
+        val nextSymbolPosAbs = nextSymbol?.span?.start ?: Int.MAX_VALUE
+
+        when {
+            nextSymbolPosAbs < nextBoundPosAbs -> {
+                val symbol = nextSymbol!!
+
+                // Emit literal antes del símbolo
+                emitLiteral(symbol.span.start)
+
+                parts += ControlSymbolPart(
+                    symbolType = symbol.type,
+                    implicit = false,
+                    origin = origin,
+                )
+
+                val endRel = toRelativeOffset(symbol.span.endExclusive)
+                cursor = endRel.coerceIn(0, text.length)
+
+                sIndex++
+            }
+
+            else -> {
+                val bound = nextBound!!
+
+                val span = bound.placeholder.span
+
+                // ⚠️ Aseguramos que sea un solo rango
+                val range = span.singleRangeOrNull()
+                if (range == null) {
+                    // fallback defensivo: ignorar placeholder roto
+                    bIndex++
+                    continue
+                }
+
+                val startAbs = range.first
+                val endAbs = range.last + 1
+
+                // val start = toRelativeOffset(startAbs)
+                val end = toRelativeOffset(endAbs)
+
+                // Emit literal antes del placeholder
+                emitLiteral(startAbs)
+
+                val resolved = argTexts[bound.placeholder]
+
+                val part = when {
+                    resolved != null -> ResolvedPlaceholder(
+                        placeholder = bound.placeholder,
+                        resolvedText = formatForKind(bound.placeholder, resolved),
+                        argSpan = bound.argument?.span,
+                        origin = origin,
+                    )
+
+                    bound.placeholder.kind == FormatKind.LITERAL -> tryBuildNestedPart(call, bound, origin)
+                        ?: UnresolvedPlaceholder(
+                            bound.placeholder,
+                            unresolvedReason(bound),
+                            origin,
+                        )
+
+                    else -> UnresolvedPlaceholder(
+                        bound.placeholder,
+                        unresolvedReason(bound),
+                        origin,
+                    )
+                }
+
+                parts += part
+
+                cursor = end.coerceIn(0, text.length)
+
+                bIndex++
+            }
+        }
+    }
+
+    // Tail restante
+    if (cursor < text.length) parts += FormatLiteral(text.substring(cursor, text.length), origin)
+
     return parts
 }
 
