@@ -105,6 +105,10 @@
             factoryClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.toolwindow.CodeBlockChainToolWindowFactory"/>
         <!-- Note: icon is optional — remove if you don't have the asset yet -->
 
+        <codeInsight.inlayProvider
+            language="kotlin"
+            implementationClass="io.github.kingg22.kotlinpoet.assistant.infrastructure.hints.KotlinPoetInlayHintsProvider"/>
+
         <psi.symbolReferenceProvider
             hostLanguage="kotlin"
             hostElementClass="org.jetbrains.kotlin.psi.KtStringTemplateExpression"
