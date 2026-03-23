@@ -13,7 +13,7 @@ sealed interface ResolvedText {
      * [displayText] wraps it in quotes.
      */
     data class StringLiteral(val value: String) : ResolvedText {
-        override val displayText: String get() = "\"$value\""
+        override val displayText: String get() = value
     }
 
     /** A numeric literal (`Int`, `Long`, `Float`, `Double`). */

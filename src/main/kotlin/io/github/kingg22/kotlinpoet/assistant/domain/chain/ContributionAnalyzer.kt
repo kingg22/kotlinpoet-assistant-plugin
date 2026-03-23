@@ -14,7 +14,6 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.BoundPlaceholder
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol.SymbolType
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.FormatKind
-import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.KotlinPoetAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
@@ -417,15 +416,14 @@ private fun controlFlowSuffix(rawFormat: String): String {
 }
 
 // %name:L emits the raw name identifier without quotes
-private fun formatForKind(placeholder: PlaceholderSpec, resolved: ResolvedText): String = when (placeholder.binding) {
-    is PlaceholderBinding.Named ->
-        if (placeholder.kind != FormatKind.STRING && placeholder.kind != FormatKind.STRING_TEMPLATE) {
-            StringUtil.unquoteString(resolved.displayText)
-        } else {
-            resolved.displayText
-        }
+private fun formatForKind(placeholder: PlaceholderSpec, resolved: ResolvedText): String = when (placeholder.kind) {
+    FormatKind.STRING, FormatKind.STRING_TEMPLATE -> if (StringUtil.isQuotedString(resolved.displayText)) {
+        resolved.displayText
+    } else {
+        "\"${resolved.displayText}\""
+    }
 
-    else -> resolved.displayText
+    else -> StringUtil.unquoteString(resolved.displayText)
 }
 
 private fun unresolvedReason(bound: BoundPlaceholder): UnresolvedReason = if (bound.argument == null) {
