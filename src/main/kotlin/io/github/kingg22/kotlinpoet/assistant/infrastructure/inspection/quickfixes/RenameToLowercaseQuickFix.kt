@@ -7,6 +7,7 @@ import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
 import org.jetbrains.annotations.Nls
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
+import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 
@@ -60,15 +61,45 @@ class RenameToLowercaseQuickFix(private val originalName: String) : LocalQuickFi
             ?.getArgumentExpression() as? KtCallExpression ?: return
 
         for (entry in mapArgExpr.valueArguments) {
-            val entryExpr = entry.getArgumentExpression() as? KtBinaryExpression ?: continue
-            val keyLiteral = entryExpr.left as? KtStringTemplateExpression ?: continue
+            when (val argumentExpr = entry.getArgumentExpression()) {
+                null -> continue
 
-            // KtStringTemplateExpression.text includes the surrounding quotes, e.g. "\"Food\""
-            val keyContent = keyLiteral.text.removeSurrounding("\"")
-            if (keyContent == originalName) {
-                val newKey = factory.createExpression("\"$lowercaseName\"")
-                keyLiteral.replace(newKey)
-                break // each key should appear at most once in a valid map
+                is KtBinaryExpression -> {
+                    val keyLiteral = argumentExpr.left as? KtStringTemplateExpression ?: continue
+
+                    // KtStringTemplateExpression.text includes the surrounding quotes, e.g. "\"Food\""
+                    val keyContent = keyLiteral.text.removeSurrounding("\"")
+                    if (keyContent == originalName) {
+                        val newKey = factory.createExpression("\"$lowercaseName\"")
+                        keyLiteral.replace(newKey)
+                        break // each key should appear at most once in a valid map
+                    }
+                }
+
+                is KtCallExpression -> {
+                    val callee = argumentExpr.calleeExpression?.text ?: continue
+                    if (callee == "Pair") {
+                        val keyLiteral = argumentExpr.valueArguments.firstOrNull()?.getArgumentExpression()
+                            as? KtStringTemplateExpression ?: continue
+                        val keyContent = keyLiteral.text.removeSurrounding("\"")
+                        if (keyContent == originalName) {
+                            val newKey = factory.createExpression("\"$lowercaseName\"")
+                            keyLiteral.replace(newKey)
+                        }
+                    }
+                }
+
+                is KtDotQualifiedExpression -> {
+                    val callExpression = argumentExpr.selectorExpression as? KtCallExpression ?: continue
+                    val callName = callExpression.calleeExpression?.text ?: continue
+                    if (callName != "to") continue
+                    val receiver = argumentExpr.receiverExpression as? KtStringTemplateExpression ?: continue
+                    val keyContent = receiver.text.removeSurrounding("\"")
+                    if (keyContent == originalName) {
+                        val newKey = factory.createExpression("\"$lowercaseName\"")
+                        receiver.replace(newKey)
+                    }
+                }
             }
         }
     }
