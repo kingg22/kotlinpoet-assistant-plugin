@@ -92,25 +92,43 @@ intellijPlatform {
             val start = "<!-- Plugin description -->"
             val end = "<!-- Plugin description end -->"
 
-            val textLines = text.lines().toMutableList()
-            if (!textLines.containsAll(listOf(start, end))) {
-                throw GradleException("Plugin description section not found in README.md:\n$start ... $end")
+            val lines = text.lines()
+            val sections = mutableListOf<String>()
+
+            var i = 0
+            while (i < lines.size) {
+                if (lines[i] == start) {
+                    val startIndex = i + 1
+                    val endIndex = lines.subList(startIndex, lines.size).indexOf(end)
+
+                    if (endIndex == -1) {
+                        throw GradleException("Closing tag not found for a section starting at line $i")
+                    }
+
+                    val section = lines.subList(startIndex, startIndex + endIndex)
+                        .toMutableList()
+                        .apply {
+                            remove("> [!NOTE]")
+                            remove("> [!WARNING]")
+                            remove("> [!TIP]")
+                            remove("> [!IMPORTANT]")
+                            remove("> [!CAUTION]")
+                        }
+                        .joinToString("\n")
+
+                    sections.add(markdownToHTML(section))
+
+                    i = startIndex + endIndex
+                }
+                i++
             }
 
-            markdownToHTML(
-                textLines.subList(
-                    textLines.indexOf(start) + 1,
-                    textLines.indexOf(end),
-                ).apply {
-                    // GitHub Flavored Markdown (GFM) is used in README.md
-                    remove("> [!NOTE]")
-                    remove("> [!WARNING]")
-                    remove("> [!TIP]")
-                    remove("> [!IMPORTANT]")
-                    remove("> [!CAUTION]")
-                }.joinToString("\n"),
-            )
-        }.apply { if (!isPresent) throw GradleException("Plugin description section not found in README.md") }
+            if (sections.isEmpty()) {
+                throw GradleException("No plugin description sections found in README.md")
+            }
+
+            sections.joinToString("\n\n")
+        }
 
         val changelog = project.changelog // local variable for configuration cache compatibility
         // Get the latest available change notes from the changelog file

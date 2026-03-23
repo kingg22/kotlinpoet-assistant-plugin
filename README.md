@@ -275,12 +275,13 @@ cd kotlinpoet-assistant-plugin
 
 ## License
 
-[Apache 2.0 License](LICENSE) — © 2025 Rey Acosta (Kingg22)
+[Apache 2.0 License](LICENSE) — © 2026 Rey Acosta (Kingg22)
 
 ---
-
+<!-- Plugin description -->
 <p style="text-align:center;">
-  Made with ❤️ by <a href="https://github.com/kingg22">Rey A.</a> with help from Claude &nbsp;·&nbsp;
-  <a href="https://github.com/kingg22/kotlinpoet-assistant-plugin/issues">Report an issue</a> &nbsp;·&nbsp;
+  Made with ❤️ by <a href="https://github.com/kingg22">Rey A.</a> with help from <a href="https://claude.com/">Claude</a> ·
+  <a href="https://github.com/kingg22/kotlinpoet-assistant-plugin/issues">Report an issue</a> ·
   <a href="https://square.github.io/kotlinpoet/">KotlinPoet Official docs</a>
 </p>
+<!-- Plugin description end -->
