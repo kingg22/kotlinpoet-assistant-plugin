@@ -1,7 +1,6 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.chain
 
 import com.intellij.openapi.util.text.StringUtil
-import com.intellij.psi.PsiFile
 import com.intellij.util.concurrency.annotations.RequiresReadLock
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.EmittedPart.ControlSymbolPart
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.EmittedPart.FormatLiteral
@@ -9,15 +8,19 @@ import io.github.kingg22.kotlinpoet.assistant.domain.chain.EmittedPart.NestedCod
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.EmittedPart.ResolvedPlaceholder
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.EmittedPart.UnresolvedPlaceholder
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.MethodSemantics.*
+import io.github.kingg22.kotlinpoet.assistant.domain.extractor.extractMapEntry
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentSource
 import io.github.kingg22.kotlinpoet.assistant.domain.model.BoundPlaceholder
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol.SymbolType
+import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.FormatKind
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.KotlinPoetAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.associateNotNull
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.references.resolveNamedTarget
 import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
@@ -180,9 +183,29 @@ private fun resolveArgTexts(
     if (analysis.bounds.isEmpty()) return emptyMap()
 
     val result = mutableMapOf<PlaceholderSpec, ResolvedText?>()
+    val isNamedBound = analysis.formatStyle == FormatStringModel.FormatStyle.Named || analysis
+        .bounds.any { it.argument?.name != null }
+    val mapArgument = if (isNamedBound) {
+        call.valueArguments.getOrNull(1)?.getArgumentExpression() as? KtCallExpression?
+    } else {
+        null
+    }
+    val mapEntries = mapArgument?.let {
+        val entriesExpr = mapArgument.valueArguments
+        analyze(mapArgument) {
+            entriesExpr.associateNotNull { entryArg ->
+                val entryExpr = entryArg.getArgumentExpression()
+                extractMapEntry(entryExpr)
+            }
+        }
+    }.orEmpty()
 
     for (bound in analysis.bounds) {
-        val argExpr = getArgExpression(call, bound) ?: continue
+        val argExpr = if (bound.argument?.name != null) {
+            mapEntries[bound.argument.name] ?: getArgExpression(call, bound)
+        } else {
+            getArgExpression(call, bound)
+        } ?: continue
         result[bound.placeholder] = ArgumentTextResolver.resolve(argExpr)
     }
 
@@ -349,7 +372,7 @@ private fun resolveToCodeBlockExpr(expr: KtExpression): KtExpression? {
  *
  * **VarArg**: direct index into `valueArguments (args[0] = format, args[index] = arg)`.
  *
- * **Named**: span-exact PSI lookup via [findExpressionAtSpan] — finds the expression
+ * **Named**: span-exact PSI lookup via [resolveNamedTarget] — finds the expression
  * whose text range **starts at** `argument.span.first` so we get the value expression
  * itself, not the surrounding `mapOf(...)` or `"key" to value` pair.
  */
@@ -358,34 +381,13 @@ private fun getArgExpression(call: KtCallExpression, bound: BoundPlaceholder): K
     return when {
         argument.index != null -> call.valueArguments.getOrNull(argument.index)?.getArgumentExpression()
 
-        argument.name != null -> argument.span?.singleRangeOrNull()?.let { span ->
-            findExpressionAtSpan(call.containingFile, span)
-        }
+        argument.name != null -> resolveNamedTarget(
+            call.valueArguments.getOrNull(1)?.getArgumentExpression() ?: return null,
+            argument.name,
+        )
 
         else -> null
     }
-}
-
-/**
- * Finds the smallest `KtExpression` whose text range **starts exactly** at [span].`first`
- * and ends within [span] bounds.
- *
- * This is more precise than walking up to the first `KtExpression` ancestor: for map
- * values like `"food" to "tacos"`, we want `"tacos"` (startOffset == span.first), not
- * the parent `KtBinaryExpression`.
- */
-private fun findExpressionAtSpan(file: PsiFile, span: IntRange): KtExpression? {
-    var psi = file.findElementAt(span.first)
-    while (psi != null) {
-        if (psi is KtExpression &&
-            psi.textRange.startOffset == span.first &&
-            psi.textRange.endOffset <= span.last + 1
-        ) {
-            return psi
-        }
-        psi = psi.parent
-    }
-    return null
 }
 
 // ── Resolvability summary ──────────────────────────────────────────────────────

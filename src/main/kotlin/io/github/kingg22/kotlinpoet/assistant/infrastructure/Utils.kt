@@ -27,3 +27,11 @@ fun KtCallExpression.looksLikeKotlinPoetCall(): Boolean {
 }
 
 internal fun String.unescaped(): String = StringUtil.unescapeStringCharacters(this)
+
+private val associateNotNullToken = object {}
+
+internal fun <T, K, V> Iterable<T>.associateNotNull(valueSelector: (T) -> Pair<K, V>?): Map<K, V> {
+    @Suppress("UNCHECKED_CAST")
+    return associate { valueSelector(it) ?: (associateNotNullToken to null) }
+        .filterKeys { it != associateNotNullToken } as Map<K, V>
+}

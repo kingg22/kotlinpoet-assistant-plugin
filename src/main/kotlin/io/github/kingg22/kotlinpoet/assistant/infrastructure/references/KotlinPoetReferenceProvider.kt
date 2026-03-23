@@ -153,7 +153,7 @@ private fun resolvePsiTarget(
     return null
 }
 
-private fun resolveNamedTarget(mapExpression: KtExpression?, name: String): KtExpression? {
+fun resolveNamedTarget(mapExpression: KtExpression?, name: String): KtExpression? {
     val call = mapExpression as? KtCallExpression ?: return null
     if (DumbService.isDumb(mapExpression.project)) return null
     analyze(mapExpression) {
