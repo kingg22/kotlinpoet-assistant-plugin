@@ -53,7 +53,11 @@ class KotlinPoetInlayHintsCollector(editor: Editor, private val settings: Kotlin
             else -> {}
         }
 
-        val approx = renderChain(contribution).cappedAt(settings.maxLineLength)
+        val approx = renderChain(contribution)
+            .cappedAt(settings.maxLineLength)
+            .replace("\n", "↵")
+            .replace("⇥", "→")
+            .replace("⇤", "←")
         if (approx.isBlank()) return
 
         val offset = call.textRange.endOffset
