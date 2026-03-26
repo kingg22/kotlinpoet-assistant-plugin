@@ -22,13 +22,13 @@ import com.intellij.openapi.ui.JBPopupMenu
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.util.concurrency.annotations.RequiresEdt
 import com.intellij.util.ui.EDT
-import com.intellij.util.ui.StartupUiUtil
-import com.intellij.util.ui.getFontWithFallback
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
 import org.jetbrains.kotlin.idea.KotlinFileType
 import java.awt.AlphaComposite
 import java.awt.Component
 import java.awt.Cursor
+import java.awt.Font
+import java.awt.FontMetrics
 import java.awt.Graphics2D
 import java.awt.Point
 import java.awt.RenderingHints
@@ -248,11 +248,11 @@ private class CodeInlay(
     /**
      * Fetches metrics from cache on each access to ensure IDE scale changes are reflected.
      */
-    private val textMetrics: InlayTextMetrics
-        get() = EditorFontMetricsCache.getMetrics(editor)
+    private val codeFont: CodeInlayFont
+        get() = EditorFontMetricsCache.getFont(editor)
 
     override val width: Int
-        get() = textMetrics.getStringWidth(text)
+        get() = codeFont.stringWidth(text)
 
     override val height: Int
         get() = editor.lineHeight
@@ -271,16 +271,15 @@ private class CodeInlay(
                     )
                     return
                 }
-            val metric = textMetrics
-            val font = metric.font
-            g.font = font
+            val entry = codeFont
+            g.font = entry.font
             g.setRenderingHint(
                 RenderingHints.KEY_TEXT_ANTIALIASING,
                 AntialiasingType.getKeyForCurrentScope(true),
             )
             g.color = foreground
             // a sum of gaps between which the text is situated on the line
-            val fontGap = editor.lineHeight - metric.fontBaseline
+            val fontGap = editor.lineHeight - entry.fontBaseline
             val yCoordinate = editor.lineHeight - fontGap / 2
             g.drawString(text, 0, yCoordinate)
         } finally {
@@ -294,63 +293,78 @@ private class CodeInlay(
 
 // <editor-fold desc="Editor font metrics cache with editor font for inlays">
 
+/** Holds pre-computed font metrics needed to render code-like inlay hints. */
+private class CodeInlayFont(val font: Font, val fontBaseline: Int, private val fontMetrics: FontMetrics) {
+    fun stringWidth(text: String): Int = fontMetrics.stringWidth(text)
+}
+
 /**
- * A cache for [InlayTextMetrics] that always uses the editor font (for code-like inlays).
- * This differs from [InlayHintsUtils.getTextMetricStorage] which respects the user's
- * "Use editor font for inlays" setting.
+ * Stamp capturing all inputs that affect inlay font metrics.
+ * When any of these change, the cache entry is invalidated.
+ */
+private data class FontStamp(
+    val fontSize: Float,
+    val fontType: Int,
+    val ideScale: Float,
+    // FontRenderContext does not implement equals; we use its components directly.
+    val aaHint: Any?,
+    val fractionalHint: Any?,
+)
+
+/**
+ * A cache for [CodeInlayFont] that always uses the editor font (for code-like inlays).
  *
- * The cache uses [InlayTextMetricsStorage.getCurrentStamp] for invalidation, ensuring
- * metrics are recreated when IDE scale, font size, or font render context changes.
+ * Invalidation is driven by a [FontStamp] that captures every input that can affect
+ * font metrics: font size, font type, IDE scale, antialiasing hint, and fractional
+ * metrics hint. This mirrors what the platform's [InlayTextMetricsStamp] tracks,
+ * but uses only public APIs.
  */
 private object EditorFontMetricsCache {
-    private class CachedEntry(val metrics: InlayTextMetrics, val stamp: InlayTextMetricsStamp)
+    private class CachedEntry(val font: CodeInlayFont, val stamp: FontStamp)
 
-    /**
-     * thread unsafe but [EditorFontMetricsCache.getMetrics] is called only from EDT, so it's OK
-     */
+    /** Thread-unsafe but [EditorFontMetricsCache.getFont] is called only from the EDT, so it's fine. */
     private val cache: MutableMap<Editor, CachedEntry> = WeakHashMap()
 
     @RequiresEdt
-    fun getMetrics(editor: Editor): InlayTextMetrics {
+    fun getFont(editor: Editor): CodeInlayFont {
         EDT.assertIsEdt()
 
-        val storage = InlayHintsUtils.getTextMetricStorage(editor)
-        val currentStamp = storage.getCurrentStamp()
-
+        val stamp = currentStamp(editor)
         val cached = cache[editor]
-        if (cached != null && cached.stamp === currentStamp) {
-            return cached.metrics
+        if (cached != null && cached.stamp == stamp) {
+            return cached.font
         }
 
-        val metrics = InlayTextMetrics.create(
-            editor,
-            editor.colorsScheme.editorFontSize2D,
-            editor.colorsScheme.getAttributes(HighlighterColors.TEXT).fontType,
-            getFontRenderContext(editor.component),
-        )
-        cache[editor] = CachedEntry(metrics, currentStamp)
-        return metrics
+        val font = buildFont(editor, stamp)
+        cache[editor] = CachedEntry(font, stamp)
+        return font
     }
 
-    private fun InlayTextMetrics.Companion.create(
-        editor: Editor,
-        size: Float,
-        fontType: Int,
-        context: FontRenderContext,
-        isUseEditorFontInInlays: Boolean = true,
-    ): InlayTextMetrics {
-        val font = if (isUseEditorFontInInlays) {
-            val editorFont = EditorUtil.getEditorFont()
-            editorFont.deriveFont(fontType, size)
-        } else {
-            val familyName = StartupUiUtil.labelFont.family
-            getFontWithFallback(familyName, fontType, size)
-        }
-        val metrics = FontInfo.getFontMetrics(font, context)
-        // We assume this will be a better approximation to a real line height for a given font
-        val fontHeight = ceil(font.createGlyphVector(context, "Albpq@").visualBounds.height).toInt()
-        val fontBaseline = ceil(font.createGlyphVector(context, "Alb").visualBounds.height).toInt()
-        return InlayTextMetrics(editor, fontHeight, fontBaseline, metrics, fontType, UISettings.getInstance().ideScale)
+    private fun currentStamp(editor: Editor): FontStamp {
+        val context = getFontRenderContext(editor.component)
+        return FontStamp(
+            fontSize = editor.colorsScheme.editorFontSize2D,
+            fontType = editor.colorsScheme.getAttributes(HighlighterColors.TEXT).fontType,
+            ideScale = UISettings.getInstance().ideScale,
+            aaHint = context.antiAliasingHint,
+            fractionalHint = context.fractionalMetricsHint,
+        )
+    }
+
+    private fun buildFont(editor: Editor, stamp: FontStamp): CodeInlayFont {
+        val context = getFontRenderContext(editor.component)
+
+        val editorFont = EditorUtil.getEditorFont()
+        val font = editorFont.deriveFont(stamp.fontType, stamp.fontSize)
+
+        val fontMetrics = FontInfo.getFontMetrics(font, context)
+
+        // Same approximation the Kotlin plugin uses for fontBaseline.
+        val fontBaseline = ceil(
+            font.createGlyphVector(context, "Alb").visualBounds.height,
+        ).toInt()
+
+        return CodeInlayFont(font, fontBaseline, fontMetrics)
     }
 
     private fun getFontRenderContext(editorComponent: JComponent): FontRenderContext {
