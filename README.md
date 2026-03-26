@@ -2,7 +2,7 @@
 
 > **IDE assistance for [KotlinPoet](https://square.github.io/kotlinpoet/) format strings — catch mistakes before your tests do.**
 
-[![JetBrains Plugin](https://img.shields.io/badge/JetBrains-Marketplace-orange?logo=jetbrains)](https://plugins.jetbrains.com/plugin/TODO)
+[![JetBrains Plugin](https://img.shields.io/badge/JetBrains-Marketplace-orange?logo=jetbrains)](https://plugins.jetbrains.com/plugin/30871-kotlinpoet-assistant)
 [![Build](https://github.com/kingg22/kotlinpoet-assistant-plugin/actions/workflows/build.yml/badge.svg)](https://github.com/kingg22/kotlinpoet-assistant-plugin/actions/workflows/build.yml)
 [![Version](https://img.shields.io/github/v/release/kingg22/kotlinpoet-assistant-plugin)](https://github.com/kingg22/kotlinpoet-assistant-plugin/releases)
 [![License](https://img.shields.io/github/license/kingg22/kotlinpoet-assistant-plugin)](LICENSE)
@@ -277,8 +277,10 @@ cd kotlinpoet-assistant-plugin
 
 [Apache 2.0 License](LICENSE) — © 2026 Rey Acosta (Kingg22)
 
----
 <!-- Plugin description -->
+This plugin is not affiliated with or endorsed by Square or KotlinPoet.
+
+---
 <p style="text-align:center;">
   Made with ❤️ by <a href="https://github.com/kingg22">Rey A.</a> with help from <a href="https://claude.com/">Claude</a> ·
   <a href="https://github.com/kingg22/kotlinpoet-assistant-plugin/issues">Report an issue</a> ·
