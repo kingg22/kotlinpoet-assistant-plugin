@@ -3,6 +3,7 @@ package io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation
 import com.intellij.codeInsight.documentation.DocumentationManagerProtocol
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.thisLogger
+import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.platform.backend.documentation.DocumentationLinkHandler
 import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.documentation.LinkResolveResult
@@ -38,20 +39,24 @@ class KotlinPoetDocumentationLinkHandler : DocumentationLinkHandler {
     }
 
     /**
-     * Wraps a resolved [PsiElement] as a [DocumentationTarget] using the
-     * [PsiDocumentationTargetProvider] extension point chain — the public API
-     * equivalent of the internal [com.intellij.lang.documentation.psi.psiDocumentationTargets] function.
+     * Wraps a resolved [PsiElement] as a [DocumentationTarget] by querying the
+     * [PsiDocumentationTargetProvider] extension point chain via its public EP name string,
+     * avoiding the use of the [Internal] [PsiDocumentationTargetProvider.EP_NAME] field.
      *
-     * Iterates all registered providers. The Kotlin plugin registers one that handles
-     * `KtElement`, and IntelliJ's core registers one for Java `PsiClass`. The first
-     * non-empty result wins, matching the internal function's semantics.
+     * [PsiDocumentationTargetProvider] is annotated [@OverrideOnly][ApiStatus.OverrideOnly]:
+     * it is designed to be *implemented*, not consumed directly. However, there is no public
+     * API that replicates the internal `psiDocumentationTargets()` function, so calling the
+     * providers is the only correct option. The suppression is intentional and minimal.
      *
-     * Returns `null` if no provider produces a target (extremely unlikely for a successfully resolved KotlinPoet class).
+     * Returns `null` if no provider produces a target (extremely unlikely for a successfully
+     * resolved KotlinPoet class).
      */
-    @Suppress("UnstableApiUsage", "OverrideOnly")
+    @Suppress("OverrideOnly")
     private fun wrapAsDocumentationTarget(element: PsiElement, originalElement: PsiElement?): DocumentationTarget? =
         try {
-            PsiDocumentationTargetProvider.EP_NAME
+            ExtensionPointName.create<PsiDocumentationTargetProvider>(
+                "com.intellij.platform.backend.documentation.psiTargetProvider",
+            )
                 .extensionList
                 .firstNotNullOfOrNull { provider ->
                     provider?.documentationTargets(element, originalElement)?.firstOrNull()
