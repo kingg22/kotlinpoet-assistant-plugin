@@ -16,7 +16,7 @@ kotlinpoet = "2.3.0"
 ktlint-pinterest = "1.8.0"
 
 # https://github.com/Kotlin/kotlinx-kover/releases
-kover = "0.9.7"
+kover = "0.9.8"
 
 # https://github.com/palantir/palantir-java-format/releases
 palantir = "2.89.0"
