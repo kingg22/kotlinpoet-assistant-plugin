@@ -17,7 +17,7 @@ pluginManagement {
 
 plugins {
     // https://github.com/JetBrains/intellij-platform-gradle-plugin/releases
-    id("org.jetbrains.intellij.platform.settings") version "2.13.1"
+    id("org.jetbrains.intellij.platform.settings") version "2.18.1"
     // Use the Foojay Toolchains plugin to automatically download JDKs required by subprojects.
     // https://github.com/gradle/foojay-toolchains/tags
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
