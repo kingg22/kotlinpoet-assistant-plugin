@@ -1,25 +1,23 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.intellij.platform.module)
+    alias(libs.plugins.intellij.platform.base)
 }
 
 kotlin {
     compilerOptions {
-        // Keep the language level of the oldest supported IDE (252 bundles Kotlin 2.2).
+        // Only loaded on IDE builds >= k2ModernSinceBuild, whose bundled stdlib is >= 2.4, so 2.2 (required to call
+        // context-parameter declarations) is safe here.
         languageVersion.set(KotlinVersion.KOTLIN_2_2)
         apiVersion.set(languageVersion)
-        jvmTarget.set(JvmTarget.JVM_21)
         freeCompilerArgs.addAll("-XXexplicit-return-types=strict", "-Xcontext-parameters")
         allWarningsAsErrors.set(true)
     }
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+kotlin {
+    jvmToolchain(21)
 }
 
 dependencies {

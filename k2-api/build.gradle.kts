@@ -1,25 +1,22 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.intellij.platform.module)
+    alias(libs.plugins.intellij.platform.base)
 }
 
 kotlin {
     compilerOptions {
-        // Keep the language level of the oldest supported IDE (252 bundles Kotlin 2.2).
-        languageVersion.set(KotlinVersion.KOTLIN_2_2)
+        // Same rule as the root project: not above the stdlib bundled by the oldest supported IDE (2025.2 -> 2.1.20).
+        languageVersion.set(KotlinVersion.KOTLIN_2_1)
         apiVersion.set(languageVersion)
-        jvmTarget.set(JvmTarget.JVM_21)
-        freeCompilerArgs.add("-XXexplicit-return-types=strict")
+        freeCompilerArgs.addAll("-XXexplicit-return-types=strict", "-Xsuppress-version-warnings")
         allWarningsAsErrors.set(true)
     }
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+kotlin {
+    jvmToolchain(21)
 }
 
 dependencies {

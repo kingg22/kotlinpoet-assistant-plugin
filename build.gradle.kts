@@ -5,7 +5,6 @@ import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.ChangelogPluginConstants
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
@@ -24,26 +23,28 @@ kotlin {
     compilerOptions {
         freeCompilerArgs.addAll(
             "-XXexplicit-return-types=strict",
-            if (KotlinVersion.DEFAULT < KotlinVersion.KOTLIN_2_2) {
-                "-Xjvm-default=all"
-            } else {
-                "-jvm-default=no-compatibility"
-            },
+            "-jvm-default=no-compatibility",
             "-Xcontext-parameters",
+            // The compiler (2.4) deprecates language 2.1, but it is the stdlib level of the oldest supported IDE.
+            "-Xsuppress-version-warnings",
         )
         optIn.addAll("kotlin.contracts.ExperimentalContracts")
+        // The stdlib is NOT bundled: the IDE provides it. `apiVersion` (the stdlib API the code may call) must not
+        // exceed the stdlib of the oldest supported IDE: since-build 252 (2025.2) bundles 2.1.20.
+        // https://plugins.jetbrains.com/docs/intellij/using-kotlin.html#bundled-stdlib-versions
+        apiVersion.set(KotlinVersion.KOTLIN_2_1)
+        // `languageVersion` only enables compiler features and needs no newer runtime. 2.2 is the minimum for the
+        // context parameters this project uses (`-Xcontext-parameters`).
         languageVersion.set(KotlinVersion.KOTLIN_2_2)
-        apiVersion.set(languageVersion)
-        jvmTarget.set(JvmTarget.JVM_21)
         extraWarnings.set(true)
         allWarningsAsErrors.set(true)
     }
 }
 
-// Set the JVM language level used to build the project.
-java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+// Pin javac and kotlinc to JDK 21 regardless of the JDK that runs Gradle (the default target follows it otherwise).
+// 21 is the minimum runtime of every supported IDE (JBR 21+), and bytecode 21 runs on newer ones.
+kotlin {
+    jvmToolchain(21)
 }
 
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/version_catalogs.html
@@ -249,16 +250,4 @@ tasks.test {
 
 tasks.publishPlugin {
     dependsOn(tasks.patchChangelog)
-}
-
-tasks.compileKotlin {
-    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
-}
-
-tasks.compileTestKotlin {
-    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
-}
-
-tasks.compileTestUiKotlin {
-    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
 }
