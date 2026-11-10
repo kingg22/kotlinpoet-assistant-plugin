@@ -5,6 +5,7 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.project.Project
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
 import org.jetbrains.annotations.Nls
+import org.jetbrains.kotlin.idea.base.psi.deleteValueArgument
 import org.jetbrains.kotlin.psi.KtCallExpression
 
 /**
@@ -29,6 +30,6 @@ class RemoveExtraArgumentQuickFix(private val argPsiIndex: Int) : LocalQuickFix 
         val call = descriptor.psiElement as? KtCallExpression ?: return
         val argList = call.valueArgumentList ?: return
         val toRemove = argList.arguments.getOrNull(argPsiIndex) ?: return
-        argList.removeArgument(toRemove)
+        argList.deleteValueArgument(toRemove)
     }
 }

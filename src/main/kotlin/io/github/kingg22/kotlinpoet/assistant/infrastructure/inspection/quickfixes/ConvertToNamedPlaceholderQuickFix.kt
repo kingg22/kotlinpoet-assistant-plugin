@@ -13,6 +13,7 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding.Positional
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.PlaceholderBinding.Relative
 import io.github.kingg22.kotlinpoet.assistant.domain.parser.NAMED_ARGUMENT_REGEX
+import org.jetbrains.kotlin.idea.base.psi.appendValueArgument
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtPsiFactory
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
@@ -111,7 +112,7 @@ class ConvertToNamedPlaceholderQuickFix(
 
         WriteCommandAction.runWriteCommandAction(project, name, familyName, {
             newNames.forEachIndexed { idx, entryName ->
-                argList.addArgument(factory.createArgument("\"$entryName\" to $SENTINEL_PREFIX$idx"))
+                argList.appendValueArgument(factory.createArgument("\"$entryName\" to $SENTINEL_PREFIX$idx"))
             }
             PsiDocumentManager.getInstance(project).commitDocument(editor.document)
         })

@@ -4,13 +4,15 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentType
 import org.jetbrains.kotlin.analysis.api.KaSession
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.analysis.api.types.KaType
+import org.jetbrains.kotlin.analysis.api.types.allSupertypes
 
 /**
  * Utility to map K2 Analysis API types to our Domain ArgumentType.
  */
 object ArgumentTypeMapper {
     @JvmStatic
-    fun KaSession.map(type: KaType?): ArgumentType {
+    context(_: KaSession)
+    fun map(type: KaType?): ArgumentType {
         if (type == null) return ArgumentType.NullType
 
         if (type is KaClassType) {

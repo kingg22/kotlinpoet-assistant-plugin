@@ -1,14 +1,16 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis
 
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
+import org.jetbrains.kotlin.analysis.api.evaluation.evaluate
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.psi.KtBinaryExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 
-fun KaSession.extractMapEntry(entryExpr: KtExpression?): Pair<String, KtExpression?>? {
+context(_: KaSession)
+fun extractMapEntry(entryExpr: KtExpression?): Pair<String, KtExpression?>? {
     // En Kotlin, "key to value" es una llamada infix a la función 'to'
     // PSI structure: KtBinaryExpression (si es infix) o KtCallExpression (si es constructor) o KtDotQualifiedExpression (si es .to())
     return when (entryExpr) {

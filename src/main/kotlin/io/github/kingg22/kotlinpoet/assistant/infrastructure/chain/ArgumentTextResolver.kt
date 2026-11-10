@@ -4,12 +4,15 @@ import io.github.kingg22.kotlinpoet.assistant.domain.chain.ResolvedText
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.ArgumentTextResolver.resolve
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.unescaped
 import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.base.KaConstantValue
 import org.jetbrains.kotlin.analysis.api.base.KaConstantValue.*
+import org.jetbrains.kotlin.analysis.api.components.resolveToCall
+import org.jetbrains.kotlin.analysis.api.evaluation.evaluate
+import org.jetbrains.kotlin.analysis.api.expressions.expressionType
 import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
 import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
 import org.jetbrains.kotlin.analysis.api.resolution.symbol
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.psi.KtClassLiteralExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
@@ -33,7 +36,7 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression
  *
  * ## Threading
  *
- * [resolve] opens its own `analyze {}` session. [KaSession.resolveInSession] must be
+ * [resolve] opens its own `analyze {}` session. [resolveInSession] must be
  * called inside an active session — used when the caller already holds one.
  */
 object ArgumentTextResolver {
@@ -48,7 +51,7 @@ object ArgumentTextResolver {
      */
     @JvmStatic
     fun resolve(expr: KtExpression, followReferences: Boolean = true): ResolvedText? =
-        analyze(expr) { this.resolve(expr, followReferences) }
+        analyze(expr) { resolveInSession(expr, followReferences) }
 
     // ── Session-internal resolution (callable without starting a new analyze{}) ─
 
@@ -59,7 +62,8 @@ object ArgumentTextResolver {
      *        infinite recursion in recursive calls.
      */
     @JvmStatic
-    fun KaSession.resolve(expr: KtExpression, followReferences: Boolean = true): ResolvedText? {
+    context(_: KaSession)
+    fun resolveInSession(expr: KtExpression, followReferences: Boolean = true): ResolvedText? {
         if (expr is KtStringTemplateExpression) return resolveStringTemplate(expr)
 
         // KaConstantValue covers: IntValue, LongValue, FloatValue, DoubleValue, ByteValue,
@@ -103,7 +107,8 @@ private fun resolveConstant(constant: KaConstantValue): ResolvedText? = when (co
     is NullValue, is ErrorValue -> null
 }
 
-private fun KaSession.resolveClassLiteral(expr: KtExpression): ResolvedText? {
+context(_: KaSession)
+private fun resolveClassLiteral(expr: KtExpression): ResolvedText? {
     if (expr is KtClassLiteralExpression) {
         val type = expr.receiverExpression?.expressionType as? KaClassType ?: return null
         return ResolvedText.TypeReference(type.classId.shortClassName.asString())
@@ -116,7 +121,8 @@ private fun KaSession.resolveClassLiteral(expr: KtExpression): ResolvedText? {
     return null
 }
 
-private fun KaSession.resolveNameReference(expr: KtNameReferenceExpression): ResolvedText? {
+context(_: KaSession)
+private fun resolveNameReference(expr: KtNameReferenceExpression): ResolvedText? {
     val psi = expr.resolveToCall()
         ?.singleCallOrNull<KaCallableMemberCall<*, *>>()
         ?.partiallyAppliedSymbol?.symbol?.psi

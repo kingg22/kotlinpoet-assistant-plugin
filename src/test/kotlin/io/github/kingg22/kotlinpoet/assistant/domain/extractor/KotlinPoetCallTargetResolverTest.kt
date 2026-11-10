@@ -7,9 +7,9 @@ import io.github.kingg22.kotlinpoet.assistant.KotlinPoetTestDescriptor
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.extractMapEntry
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.extractor.KotlinPoetCallTargetResolver
 import org.intellij.lang.annotations.Language
-import org.jetbrains.kotlin.analysis.api.analyze
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
+import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
