@@ -7,6 +7,7 @@ import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.intellij.platform.gradle.tasks.RunIdeTask
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
@@ -192,6 +193,13 @@ intellijPlatform {
         ides {
             recommended()
         }
+        // Defaults minus OVERRIDE_ONLY_API_USAGES. The only usage is PsiDocumentationTargetProvider.documentationTargets,
+        // which has no public replacement (the Kotlin plugin calls it the same way) and was accepted by JetBrains
+        // Marketplace review. Binary incompatibilities and internal API usages still fail the build.
+        failureLevel = listOf(
+            VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS,
+            VerifyPluginTask.FailureLevel.INTERNAL_API_USAGES,
+        )
     }
 }
 
