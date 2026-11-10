@@ -272,3 +272,9 @@ tasks.test {
 tasks.publishPlugin {
     dependsOn(tasks.patchChangelog)
 }
+
+// Optional: open a project (and files) directly in any runIde task, e.g.
+// `./gradlew runIde262 -PideArgs="/path/to/project|/path/to/project/src/Main.kt"`
+tasks.withType<org.jetbrains.intellij.platform.gradle.tasks.RunIdeTask>().configureEach {
+    providers.gradleProperty("ideArgs").orNull?.let { args(it.split('|')) }
+}
