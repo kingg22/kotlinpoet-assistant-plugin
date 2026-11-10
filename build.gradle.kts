@@ -32,7 +32,7 @@ kotlin {
             "-Xcontext-parameters",
         )
         optIn.addAll("kotlin.contracts.ExperimentalContracts")
-        languageVersion.set(KotlinVersion.KOTLIN_2_0)
+        languageVersion.set(KotlinVersion.KOTLIN_2_2)
         apiVersion.set(languageVersion)
         jvmTarget.set(JvmTarget.JVM_21)
         extraWarnings.set(true)
@@ -73,6 +73,7 @@ dependencies {
 
         testFramework(TestFrameworkType.Platform)
         testFramework(TestFrameworkType.Bundled)
+        testFramework(TestFrameworkType.Plugin.Java)
     }
 }
 
@@ -240,4 +241,16 @@ tasks.test {
 
 tasks.publishPlugin {
     dependsOn(tasks.patchChangelog)
+}
+
+tasks.compileKotlin {
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
+}
+
+tasks.compileTestKotlin {
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
+}
+
+tasks.compileTestUiKotlin {
+    compilerOptions.jvmTarget.set(JvmTarget.JVM_21)
 }

@@ -7,7 +7,7 @@ junit4 = "4.13.2"
 junit5 = "5.14.3"
 
 # https://github.com/JetBrains/kotlin/releases
-kotlin = "2.1.20"
+kotlin = "2.4.21-RC"
 
 # https://github.com/square/kotlinpoet/releases
 kotlinpoet = "2.3.0"
