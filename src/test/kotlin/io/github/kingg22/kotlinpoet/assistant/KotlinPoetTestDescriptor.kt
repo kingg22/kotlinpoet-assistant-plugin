@@ -39,7 +39,7 @@ import com.intellij.testFramework.fixtures.MavenDependencyUtil
 object KotlinPoetTestDescriptor {
 
     /** KotlinPoet version used across all tests. Bump here to update all tests at once. */
-    const val KOTLINPOET_VERSION: String = "2.2.0"
+    const val KOTLINPOET_VERSION: String = "2.3.0"
 
     private const val KOTLINPOET_COORDINATES = "com.squareup:kotlinpoet-jvm:$KOTLINPOET_VERSION"
 
