@@ -1,18 +1,17 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.references
 
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.model.Symbol
 import com.intellij.model.psi.PsiExternalReferenceHost
 import com.intellij.model.psi.PsiSymbolReference
 import com.intellij.model.psi.PsiSymbolReferenceHints
 import com.intellij.model.psi.PsiSymbolReferenceProvider
 import com.intellij.model.search.SearchRequest
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.project.Project
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentOfType
-import com.intellij.util.ExceptionUtil
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
@@ -104,7 +103,7 @@ class KotlinPoetReferenceProvider : PsiSymbolReferenceProvider {
 
             return references
         } catch (e: Exception) {
-            if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
+            rethrowControlFlowException(e)
             logger.error("Failed to build KotlinPoet references", e)
             return emptyList()
         }

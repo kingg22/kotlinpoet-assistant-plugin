@@ -1,7 +1,7 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation
 
 import com.intellij.codeInsight.documentation.DocumentationManagerProtocol
-import com.intellij.openapi.diagnostic.Logger
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.platform.backend.documentation.DocumentationLinkHandler
@@ -10,7 +10,6 @@ import com.intellij.platform.backend.documentation.LinkResolveResult
 import com.intellij.platform.backend.documentation.PsiDocumentationTargetProvider
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil.findChildOfType
-import com.intellij.util.ExceptionUtil
 import org.jetbrains.kotlin.kdoc.psi.impl.KDocName
 import org.jetbrains.kotlin.psi.KtPsiFactory
 
@@ -41,9 +40,10 @@ class KotlinPoetDocumentationLinkHandler : DocumentationLinkHandler {
     /**
      * Wraps a resolved [PsiElement] as a [DocumentationTarget] by querying the
      * [PsiDocumentationTargetProvider] extension point chain via its public EP name string,
-     * avoiding the use of the [Internal] [PsiDocumentationTargetProvider.EP_NAME] field.
+     * avoiding the use of the [org.jetbrains.annotations.ApiStatus.Internal]
+     * [PsiDocumentationTargetProvider.EP_NAME] field.
      *
-     * [PsiDocumentationTargetProvider] is annotated [@OverrideOnly][ApiStatus.OverrideOnly]:
+     * [PsiDocumentationTargetProvider] is annotated [@OverrideOnly][org.jetbrains.annotations.ApiStatus.OverrideOnly]:
      * it is designed to be *implemented*, not consumed directly. However, there is no public
      * API that replicates the internal `psiDocumentationTargets()` function, so calling the
      * providers is the only correct option. The suppression is intentional and minimal.
@@ -59,10 +59,10 @@ class KotlinPoetDocumentationLinkHandler : DocumentationLinkHandler {
             )
                 .extensionList
                 .firstNotNullOfOrNull { provider ->
-                    provider?.documentationTargets(element, originalElement)?.firstOrNull()
+                    provider.documentationTargets(element, originalElement).firstOrNull()
                 }
         } catch (e: Exception) {
-            if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
+            rethrowControlFlowException(e)
             logger.warn("Error wrapping resolved PsiElement as DocumentationTarget", e)
             null
         }

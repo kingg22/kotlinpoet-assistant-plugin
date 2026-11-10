@@ -1,11 +1,10 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation
 
-import com.intellij.openapi.diagnostic.Logger
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.documentation.DocumentationTargetProvider
 import com.intellij.psi.PsiFile
-import com.intellij.util.ExceptionUtil
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol.SymbolType
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation.DocToken.Control
@@ -56,7 +55,7 @@ class KotlinPoetDocumentationTargetProvider : DocumentationTargetProvider {
                 return listOf(KotlinPoetDocumentationTarget(Control(fallback), template))
             }
         } catch (e: Exception) {
-            if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
+            rethrowControlFlowException(e)
             logger.error("Error trying to provide documentation for KotlinPoet format string", e)
         }
 

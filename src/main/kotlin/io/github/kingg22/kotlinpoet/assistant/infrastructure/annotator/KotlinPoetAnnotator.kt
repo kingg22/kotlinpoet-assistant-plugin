@@ -1,15 +1,14 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.annotator
 
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.colors.TextAttributesKey
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
-import com.intellij.util.ExceptionUtil
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.putCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.toTextRanges
@@ -43,7 +42,7 @@ class KotlinPoetAnnotator :
                 }
             }
         } catch (e: Exception) {
-            if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
+            rethrowControlFlowException(e)
             // Fail-safe para no romper el editor si el binding falla inesperadamente
             logger.error("Error trying to highlight KotlinPoet format string", e)
         }

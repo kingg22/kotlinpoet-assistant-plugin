@@ -1,18 +1,16 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis
 
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.openapi.diagnostic.fileLogger
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.util.Key
 import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
-import com.intellij.util.ExceptionUtil
 import io.github.kingg22.kotlinpoet.assistant.domain.extractor.FormatContextExtractorRegistry
 import org.jetbrains.kotlin.psi.KtCallExpression
 
-@Suppress("UnstableApiUsage")
-private val logger = fileLogger()
+private val logger = Logger.getInstance("KotlinPoetAnalysisService")
 
 private val KEY_CONTEXT: Key<CachedValue<KotlinPoetAnalysis>> = Key.create("kotlinpoet.context")
 
@@ -40,7 +38,7 @@ fun getCachedAnalysis(call: KtCallExpression?, extractOnMissing: Boolean = true)
                 try {
                     if (extractOnMissing) FormatContextExtractorRegistry.extract(call) else null
                 } catch (e: Exception) {
-                    if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
+                    rethrowControlFlowException(e)
                     logger.warn("Error extracting kotlinpoet call", e)
                     null
                 }

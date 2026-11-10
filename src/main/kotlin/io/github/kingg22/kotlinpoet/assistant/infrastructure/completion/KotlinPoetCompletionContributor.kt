@@ -7,7 +7,7 @@ import com.intellij.codeInsight.completion.CompletionResultSet
 import com.intellij.codeInsight.completion.CompletionType
 import com.intellij.codeInsight.lookup.LookupElement
 import com.intellij.codeInsight.lookup.LookupElementBuilder
-import com.intellij.openapi.diagnostic.Logger
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.project.DumbService
@@ -16,7 +16,6 @@ import com.intellij.patterns.PlatformPatterns.psiElement
 import com.intellij.patterns.PsiElementPattern
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.parentOfType
-import com.intellij.util.ExceptionUtil
 import com.intellij.util.ProcessingContext
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
@@ -101,7 +100,7 @@ class KotlinPoetCompletionContributor :
                     result.withPrefixMatcher("%").addAllElements(placeholderKind)
                 }
             } catch (e: Exception) {
-                if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
+                rethrowControlFlowException(e)
                 logger.error("Error trying to provide completion KotlinPoet format string", e)
             }
         }

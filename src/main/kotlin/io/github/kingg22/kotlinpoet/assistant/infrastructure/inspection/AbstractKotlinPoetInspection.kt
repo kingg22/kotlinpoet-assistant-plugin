@@ -4,12 +4,12 @@ import com.intellij.codeInspection.LocalInspectionTool
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElementVisitor
-import com.intellij.util.ExceptionUtil
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.FormatProblem
 import io.github.kingg22.kotlinpoet.assistant.domain.validation.ProblemSeverity
@@ -50,7 +50,7 @@ abstract class AbstractKotlinPoetInspection :
                     putCachedAnalysis(expression, analysis)
                     checkCall(expression, analysis, holder)
                 } catch (e: Exception) {
-                    if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
+                    rethrowControlFlowException(e)
                     logger.warn("Error in ${this@AbstractKotlinPoetInspection::class.simpleName}", e)
                 }
             }
