@@ -14,7 +14,7 @@ junit6 = "6.1.3"
 kotlin = "2.4.21-RC"
 
 # https://github.com/square/kotlinpoet/releases
-kotlinpoet = "2.3.0"
+kotlinpoet = "2.4.0"
 
 # https://github.com/pinterest/ktlint/releases
 ktlint-pinterest = "1.8.0"
