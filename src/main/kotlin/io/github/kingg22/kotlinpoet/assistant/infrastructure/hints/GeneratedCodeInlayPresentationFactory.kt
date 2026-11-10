@@ -52,7 +52,7 @@ internal fun InlayPresentation.withButtons(vararg additionalOptions: AnAction): 
     return listOf(this, settingsButton).horizontal()
 }
 
-internal fun InlayPresentation.withSmallInset() =
+internal fun InlayPresentation.withSmallInset(): InlayPresentation =
     this.inset(left = SMALL_INSET_SIZE, right = SMALL_INSET_SIZE, top = 0, down = 0)
 
 /**
@@ -83,14 +83,19 @@ context(factory: GeneratedCodeInlayFactory)
 internal fun InlayPresentation.withTooltip(@NlsContexts.HintText tooltip: String): InlayPresentation =
     factory.factory.withTooltip(tooltip, this)
 
+context(ctx: GeneratedCodeInlayFactory)
 internal fun List<InlayPresentation>.vertical(): InlayPresentation = when (size) {
-    0 -> SpacePresentation(0, 0)
+    // SpacePresentation(0, 0)
+    0 -> ctx.factory.seq()
+
     1 -> single()
+
     else -> VerticalListInlayPresentation(this)
 }
 
+context(ctx: GeneratedCodeInlayFactory)
 internal fun List<InlayPresentation>.horizontal(): InlayPresentation = when (size) {
-    0 -> SpacePresentation(0, 0)
+    0 -> ctx.factory.seq()
     1 -> single()
     else -> SequencePresentation(this)
 }

@@ -2,7 +2,6 @@ package io.github.kingg22.kotlinpoet.assistant.infrastructure.hints
 
 import com.intellij.codeInsight.hints.FactoryInlayHintsCollector
 import com.intellij.codeInsight.hints.InlayHintsSink
-import com.intellij.codeInsight.hints.presentation.SpacePresentation
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
@@ -113,7 +112,7 @@ class KotlinPoetInlayHintsCollector(editor: Editor, private val settings: Kotlin
 
         val collapsableHint = factory
             .collapsible(
-                prefix = SpacePresentation(0, 0),
+                prefix = factory.seq(), // SpacePresentation(0, 0),
                 collapsed = collapsed,
                 expanded = { expanded },
                 suffix = suffixHint,
