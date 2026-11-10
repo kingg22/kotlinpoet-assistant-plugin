@@ -12,21 +12,61 @@
 
 name: Build
 on:
-  # Trigger the workflow on pushes to only the 'main' branch (this avoids duplicate checks being run e.g., for dependabot pull requests)
+  # Trigger the workflow on pushes to only the 'main' branch (feature branches get CI through their pull request)
   push:
     branches: [ main ]
   # Trigger the workflow on any pull request
   pull_request:
+  # Manual runs always build
+  workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # PRs: one group per PR, so a new commit cancels the run of the commit it replaces.
+  # Pushes and manual runs: one group per commit. GitHub keeps a single pending run per group and replaces it when
+  # another is queued, so a per-branch group would leave queued commits without a result. Builds that already ran
+  # for the same content are skipped by `pre_job` below.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+
+  # Skips the build when a successful run already exists for the same content (tree hash), from a PR or a push:
+  # e.g. the push to main after a squash/rebase merge of a PR that already passed, or a push and its PR's
+  # synchronize event for the same commit. Manual runs always build.
+  pre_job:
+    runs-on: ubuntu-latest
+    # Minimum permissions documented by skip-duplicate-actions.
+    permissions:
+      actions: write
+      contents: read
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@b974a9395958c231af965b70070979a577efa578 # v5.3.2
+        with:
+          concurrent_skipping: same_content_newer
+          skip_after_successful_duplicate: 'true'
+          do_not_skip: '["workflow_dispatch", "schedule"]'
 
   # Prepare the environment and build the plugin
   build:
     name: Build
+    needs: pre_job
+    # Skip Renovate's and Dependabot's PRs and commits. Inside Actions the bots' logins are `renovate[bot]` /
+    # `dependabot[bot]`. `actor` is the identity that triggered the run (the bots' own pushes); `pull_request.user`
+    # still matches when someone else re-runs or rebases the bot's PR. The commit author is not used: anyone can set
+    # it to a bot's no-reply address. A skipped job counts as passing for required status checks, and `test` /
+    # `verify` / `releaseDraft` depend on this job, so they are skipped too.
+    # `!cancelled()` instead of the implicit `success()`: if pre_job fails its output is empty and the build runs,
+    # so a broken duplicate check can never turn into a green skipped build.
+    if: >-
+      !cancelled() &&
+      needs.pre_job.outputs.should_skip != 'true' &&
+      github.actor != 'renovate[bot]' &&
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'renovate[bot]' &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
 
@@ -191,8 +231,17 @@ jobs:
   # If accepted and published, the release workflow would be triggered
   releaseDraft:
     name: Release draft
-    if: github.event_name != 'pull_request'
     needs: [ build, test, verify ]
+    # Only on main. `!cancelled()` + "no failure" instead of the implicit `success()`: when the push to main is a
+    # duplicate of a PR run that already passed, build/test/verify are skipped (not successful), but the draft must
+    # still be created. Bots' own pushes are excluded, same as in `build`.
+    if: >-
+      !cancelled() &&
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main' &&
+      github.actor != 'renovate[bot]' &&
+      github.actor != 'dependabot[bot]' &&
+      !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     permissions:
       contents: write
