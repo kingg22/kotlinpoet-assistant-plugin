@@ -20,6 +20,10 @@ kotlin {
     jvmToolchain(21)
 }
 
+// The platform 'base' plugin does not register this configuration, but its `intellijPlatformDoctor` task requires it.
+// IDE Gradle sync realizes every task, so without it the project fails to import. It is intentionally empty.
+configurations.maybeCreate("intellijPlatformComposedJar")
+
 dependencies {
     intellijPlatform {
         intellijIdea(providers.gradleProperty("k2ModernPlatformVersion"))
