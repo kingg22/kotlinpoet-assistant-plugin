@@ -10,7 +10,7 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.Place
  * - faltan args
  * - args sin usar
  */
-class RelativeBindingEngine : BindingEngine {
+data object RelativeBindingEngine : BindingEngine {
     override fun bind(format: FormatStringModel, arguments: ArgumentSource): List<BoundPlaceholder> {
         if (arguments !is ArgumentSource.VarArgs) return emptyList()
         val args = arguments.arguments

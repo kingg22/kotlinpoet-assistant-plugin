@@ -1,7 +1,6 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.chain
 
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel
-import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParser
 import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParserImpl
 import io.github.kingg22.kotlinpoet.assistant.domain.text.FormatText
 import io.github.kingg22.kotlinpoet.assistant.domain.text.FormatTextSegment
@@ -24,15 +23,13 @@ class MethodSemanticsClassifierTest {
 
     // ── DSL helpers ────────────────────────────────────────────────────────────
 
-    private val parser: StringFormatParser = StringFormatParserImpl()
-
     /** Creates a FormatText backed by a single literal segment starting at offset 0. */
     private fun text(raw: String): FormatText = FormatText(
         listOf(FormatTextSegment(raw, 0 until raw.length)),
     )
 
     /** Parses a raw format string into a [FormatStringModel]. */
-    private fun model(raw: String): FormatStringModel = parser.parse(text(raw))
+    private fun model(raw: String): FormatStringModel = StringFormatParserImpl.parse(text(raw))
 
     // ── classify() ────────────────────────────────────────────────────────────
 

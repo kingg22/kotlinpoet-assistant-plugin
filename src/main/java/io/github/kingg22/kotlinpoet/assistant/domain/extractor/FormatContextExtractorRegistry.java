@@ -17,7 +17,7 @@ public final class FormatContextExtractorRegistry {
         throw new UnsupportedOperationException();
     }
 
-    private static final StringFormatParser PARSER = new StringFormatParserImpl();
+    private static final StringFormatParser PARSER = StringFormatParserImpl.INSTANCE;
 
     private static final List<FormatContextExtractor> EXTRACTORS =
             List.of(new NamedFormatExtractor(PARSER), new VarargFormatExtractor(PARSER));

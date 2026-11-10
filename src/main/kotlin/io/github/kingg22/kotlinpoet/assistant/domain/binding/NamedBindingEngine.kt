@@ -11,7 +11,7 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.Place
  * - claves no usadas
  * - naming rules (^[a-z][a-zA-Z0-9_]*$)
  */
-class NamedBindingEngine : BindingEngine {
+data object NamedBindingEngine : BindingEngine {
     override fun bind(format: FormatStringModel, arguments: ArgumentSource): List<BoundPlaceholder> {
         if (arguments !is ArgumentSource.NamedMap) return emptyList()
         val map = arguments.entries

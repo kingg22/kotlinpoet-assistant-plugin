@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nls
  * - All `span(start, endExclusive)` calls are bounded to `[0, text.length]`.
  * - No exception is thrown for malformed input; problems are accumulated in `errors`/`warnings`.
  */
-class StringFormatParserImpl : StringFormatParser {
+data object StringFormatParserImpl : StringFormatParser {
     /** Actual parser state */
     private class ParseState(val text: FormatText) {
         val rawString: String = text.asString()

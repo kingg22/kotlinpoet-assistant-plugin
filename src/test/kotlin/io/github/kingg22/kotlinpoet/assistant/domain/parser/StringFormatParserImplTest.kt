@@ -34,8 +34,6 @@ import org.junit.jupiter.params.provider.ValueSource
  */
 class StringFormatParserImplTest {
 
-    private val parser: StringFormatParser = StringFormatParserImpl()
-
     // ── Test DSL ───────────────────────────────────────────────────────────────
 
     /**
@@ -56,7 +54,7 @@ class StringFormatParserImplTest {
         FormatText(segments.map { (t, start) -> FormatTextSegment(t, start until start + t.length) })
 
     private fun parse(raw: String, isNamedStyle: Boolean = false): FormatStringModel =
-        parser.parse(text(raw), isNamedStyle)
+        StringFormatParserImpl.parse(text(raw), isNamedStyle)
 
     // ── Happy path ─────────────────────────────────────────────────────────────
 
@@ -65,7 +63,7 @@ class StringFormatParserImplTest {
 
         @Test
         fun `empty string produces empty model`() {
-            val model = parser.parse(FormatText(emptyList()))
+            val model = StringFormatParserImpl.parse(FormatText(emptyList()))
             assertTrue(model.placeholders.isEmpty())
             assertTrue(model.controlSymbols.isEmpty())
             assertTrue(model.errors.isEmpty())
@@ -510,7 +508,7 @@ class StringFormatParserImplTest {
                     FormatTextSegment("B", 20..20),
                 ),
             )
-            val model = parser.parse(multiSegment)
+            val model = StringFormatParserImpl.parse(multiSegment)
             assertEquals(1, model.placeholders.size)
             val span = model.placeholders.first().span
             assertTrue(span.isSingle())
@@ -550,7 +548,7 @@ class StringFormatParserImplTest {
                     FormatTextSegment("%L", 0..1, SegmentKind.DYNAMIC),
                 ),
             )
-            val model = parser.parse(t)
+            val model = StringFormatParserImpl.parse(t)
             assertTrue(model.placeholders.isEmpty(), "Dynamic segments must be skipped entirely")
         }
 
@@ -563,14 +561,14 @@ class StringFormatParserImplTest {
                     FormatTextSegment("%S", 7..8, SegmentKind.LITERAL),
                 ),
             )
-            val model = parser.parse(t)
+            val model = StringFormatParserImpl.parse(t)
             assertEquals(2, model.placeholders.size)
         }
 
         @Test
         fun `only dynamic segment produces empty model`() {
             val t = FormatText(listOf(FormatTextSegment("\$x", 0..1, SegmentKind.DYNAMIC)))
-            val model = parser.parse(t)
+            val model = StringFormatParserImpl.parse(t)
             assertTrue(model.placeholders.isEmpty())
             assertTrue(model.errors.isEmpty())
             assertTrue(model.warnings.isEmpty())

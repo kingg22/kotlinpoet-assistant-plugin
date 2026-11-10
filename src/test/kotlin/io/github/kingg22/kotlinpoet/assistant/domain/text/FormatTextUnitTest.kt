@@ -29,7 +29,7 @@ class FormatTextUnitTest {
             ),
         )
 
-        val model = StringFormatParserImpl().parse(text)
+        val model = StringFormatParserImpl.parse(text)
         assertEquals(1, model.placeholders.size)
         assertTrue(model.placeholders.first().span.isSingle())
     }

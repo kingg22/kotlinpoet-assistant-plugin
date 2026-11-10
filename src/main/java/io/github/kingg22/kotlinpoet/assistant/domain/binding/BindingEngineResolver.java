@@ -12,11 +12,11 @@ public final class BindingEngineResolver {
     @Contract(pure = true)
     public static @NotNull BindingEngine forStyle(@NotNull FormatStyle style) {
         return switch (style) {
-            case FormatStyle.None ignored -> new NoneBindingEngine();
-            case FormatStyle.Relative ignored -> new RelativeBindingEngine();
-            case FormatStyle.Positional ignored -> new PositionalBindingEngine();
-            case FormatStyle.Named ignored -> new NamedBindingEngine();
-            case FormatStyle.Mixed ignored -> new MixedBindingEngine();
+            case FormatStyle.None ignored -> NoneBindingEngine.INSTANCE;
+            case FormatStyle.Relative ignored -> RelativeBindingEngine.INSTANCE;
+            case FormatStyle.Positional ignored -> PositionalBindingEngine.INSTANCE;
+            case FormatStyle.Named ignored -> NamedBindingEngine.INSTANCE;
+            case FormatStyle.Mixed ignored -> MixedBindingEngine.INSTANCE;
             default -> throw new IllegalArgumentException("Unexpected value: " + style);
         };
     }
