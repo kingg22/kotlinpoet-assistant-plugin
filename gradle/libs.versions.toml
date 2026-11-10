@@ -4,7 +4,7 @@ jetbrains-changelog = "2.5.0"
 
 # https://github.com/junit-team/junit-framework/releases
 junit4 = "4.13.2"
-junit5 = "5.14.3"
+junit5 = "5.14.4"
 
 # https://github.com/junit-team/junit-framework/releases
 # JUnit 6 is required by the IntelliJ Platform test framework 2026.3+ (it calls Store.computeIfAbsent, absent in 5.x)
