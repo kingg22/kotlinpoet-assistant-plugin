@@ -4,7 +4,21 @@
 
 ### Added
 
-#### Inspections
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
+### Technical
+
+## [0.0.1] - 2026-03-26
+
+### Added
 
 - **Missing argument** (`KotlinPoetMissingArgument`) — reports a placeholder with no corresponding argument;
 causes `IllegalArgumentException` at runtime. Level: **Error**.
@@ -25,83 +39,6 @@ string and the map literal simultaneously).
   *Convert to relative style*,
   *Convert to positional style* (the latter two use a live template for interactive renaming).
 
-#### Syntax Highlighting
-
-- Placeholders (`%L`, `%2S`, `%food:T`, …) highlighted with `KPOET_PLACEHOLDER`
-(`DefaultLanguageHighlighterColors.HIGHLIGHTED_REFERENCE` base).
-- Control symbols (`«`, `»`, `⇥`, `⇤`, `%%`, `·`, `♢`) highlighted with `KPOET_CONTROL`
-(`DefaultLanguageHighlighterColors.PREDEFINED_SYMBOL` base).
-
-#### Navigation & References
-
-- **Navigate to argument** — `Ctrl+Click` (or `Cmd+Click`) on any placeholder in a format string navigates to the bound
-argument expression. Supports relative, positional, and named styles.
-- **Find Usages** — `Alt+F7` on an argument expression highlights all placeholder references to it in the format string,
-plus the declaration itself.
-- Bidirectional: references are implemented via `PsiSymbolReferenceProvider` + `UsageSearcher` using the new IntelliJ
-Platform API (`com.intellij.model.psi`).
-
-#### Inline Documentation
-
-- `Ctrl+Q` (or hover) on any placeholder or control symbol shows a documentation popup with:
-  - A short description of the token's semantics.
-  - The accepted argument types (with links to KotlinPoet classes).
-  - A direct external link to the relevant section of the KotlinPoet documentation.
-- `psi_element://` links in the popup resolve to KotlinPoet class documentation via `DocumentationLinkHandler`.
-
-#### Code Completion
-
-- Typing `%` inside a KotlinPoet format string argument triggers a completion popup listing all supported placeholder
-types and `%%`.
-- Each item includes a type label (e.g., "Literal", "Type") and a short description.
-- `KotlinPoetCompletionConfidence` suppresses the default auto-popup inhibition so the list appears immediately
-after `%`.
-- `KotlinPoetTypedHandler` fires `AutoPopupController` to ensure the popup appears even on the very first `%` keystroke.
-
-#### Chain Preview Tool Window
-
-- New bottom tool window **KotlinPoet Chain** (`View → Tool Windows → KotlinPoet Chain`).
-- Activates on caret movement into any KotlinPoet builder call (dot-chains and `buildCodeBlock { }` lambdas).
-- Displays a per-call row for every method in the chain with:
-  - Method name (clickable — navigates to the source location with a brief highlight).
-  - Semantic tag (`[stmt]`, `[begin]`, `[end]`, `[indent]`, `[build]`, …).
-  - Approximate emitted text (resolved scalar arguments shown inline; unresolved shown as `[%L]`).
-  - Row background color: red for state-machine violations, amber for inspection problems.
-- State-machine validation: it detects double-open statement, close-without-open, and negative indent violations at
-static analysis time.
-- Text preview section: indented, rendered approximation of the full `CodeBlock` output.
-- Warnings for unclosed statement scopes and unbalanced indent levels at the end of a chain.
-- Updates with a 400 ms debounced on caret movement and document changes.
-
-#### Inlay Hints
-
-- New inlay hints provider **KotlinPoet code preview**
-(*Settings → Editor → Inlay Hints → Other → Kotlin → KotlinPoet code preview*).
-- **Per-call EOL hint** (default: on) — a faint annotation at the end of each builder call line showing the approximate
-emission of that call alone.
-- **Chain preview hint** (default: on) — a collapsible block element placed above the terminal call showing the full
-indented preview. Starts collapsed; click to expand.
-- Settings: max preview lines (1–100, default 12), max line length (20–200 chars, default 80), toggle per-call and chain
-preview independently, toggle expanded-by-default.
-
-#### Error Reporting
-
-- Custom `ErrorReportSubmitter` with a **Report to GitHub** button on any IDE error captured from this plugin.
-- Copies the full stack trace to the clipboard automatically.
-- Opens a pre-filled GitHub issue with IDE version, OS, JVM, plugin version, and a paste placeholder for the stack trace.
-
-#### Supported KotlinPoet APIs
-
-- `CodeBlock.Builder.add` / `addCode` / `addNamed` / `addStatement`
-- `CodeBlock.Builder.beginControlFlow` / `nextControlFlow` / `endControlFlow`
-- `CodeBlock.Builder.indent` / `unindent`
-- `CodeBlock.of` / `buildCodeBlock { }`
-- `FunSpec.Builder`, `TypeSpec.Builder`, `PropertySpec.Builder`, `FileSpec.Builder` (any `.Builder` in
-`com.squareup.kotlinpoet.*` package)
-- `addKdoc`
-- Custom extension functions on `CodeBlock.Builder` that delegate to a known KotlinPoet format method
-(detected automatically via K2 body analysis)
-
 ### Technical
 
 - Requires **IntelliJ IDEA 2025.2+** (build 252+) with K2 Kotlin plugin mode. K1 is not supported.
@@ -115,4 +52,5 @@ highlighting and navigation — no raw string reparsing.
 - Chain analysis uses an immutable state machine (`EmissionState` + `EmissionStateDelta`) safe to cache per call and
 compose across the chain.
 
-[Unreleased]: https://github.com/kingg22/kotlinpoet-assistant-plugin/commits
+[Unreleased]: https://github.com/kingg22/kotlinpoet-assistant-plugin/compare/0.0.1...HEAD
+[0.0.1]: https://github.com/kingg22/kotlinpoet-assistant-plugin/commits/0.0.1
