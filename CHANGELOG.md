@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 ### Added
+- Compatibility with **IntelliJ IDEA 2026.2** (build 262). The plugin keeps working on IntelliJ IDEA 2025.2 (build 252)
+  and newer.
 
 ### Changed
 
