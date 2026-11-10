@@ -51,7 +51,9 @@ jobs:
       github.actor != 'renovate[bot]' &&
       github.actor != 'dependabot[bot]' &&
       github.event.pull_request.user.login != 'renovate[bot]' &&
-      github.event.pull_request.user.login != 'dependabot[bot]'
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.actor != 'github-actions[bot]' &&
+      github.event.pull_request.user.login != 'github-actions[bot]'
     runs-on: ubuntu-latest
     permissions:
       # Required to upload the results
