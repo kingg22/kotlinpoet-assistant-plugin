@@ -1,7 +1,6 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation
 
 import com.intellij.codeInsight.documentation.DocumentationManagerProtocol
-import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.extensions.ExtensionPointName
 import com.intellij.platform.backend.documentation.DocumentationLinkHandler
@@ -10,6 +9,7 @@ import com.intellij.platform.backend.documentation.LinkResolveResult
 import com.intellij.platform.backend.documentation.PsiDocumentationTargetProvider
 import com.intellij.psi.PsiElement
 import com.intellij.psi.util.PsiTreeUtil.findChildOfType
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.rethrowControlFlowException
 import org.jetbrains.kotlin.kdoc.psi.impl.KDocName
 import org.jetbrains.kotlin.psi.KtPsiFactory
 

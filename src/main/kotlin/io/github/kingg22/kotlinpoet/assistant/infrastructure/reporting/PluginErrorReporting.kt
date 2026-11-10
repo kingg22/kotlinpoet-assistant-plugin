@@ -1,6 +1,5 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.reporting
 
-import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.diagnostic.ErrorReportSubmitter
 import com.intellij.openapi.diagnostic.IdeaLoggingEvent
@@ -12,6 +11,7 @@ import com.intellij.openapi.util.SystemInfo
 import com.intellij.util.Consumer
 import com.intellij.util.ExceptionUtil
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.rethrowControlFlowException
 import org.jetbrains.annotations.VisibleForTesting
 import java.awt.Component
 import java.awt.Desktop

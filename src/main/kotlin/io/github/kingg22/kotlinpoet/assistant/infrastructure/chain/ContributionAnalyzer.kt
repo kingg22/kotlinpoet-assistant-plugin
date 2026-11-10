@@ -16,16 +16,12 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec.FormatKind
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.KotlinAnalysisBridges
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.KotlinPoetAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.extractMapEntry
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.resolveNamedTarget
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.associateNotNull
-import org.jetbrains.kotlin.analysis.api.components.resolveToCall
-import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
-import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
-import org.jetbrains.kotlin.analysis.api.resolution.symbol
-import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
@@ -193,11 +189,9 @@ private fun resolveArgTexts(
     }
     val mapEntries = mapArgument?.let {
         val entriesExpr = mapArgument.valueArguments
-        analyze(mapArgument) {
-            entriesExpr.associateNotNull { entryArg ->
-                val entryExpr = entryArg.getArgumentExpression()
-                extractMapEntry(entryExpr)
-            }
+        entriesExpr.associateNotNull { entryArg ->
+            val entryExpr = entryArg.getArgumentExpression()
+            extractMapEntry(entryExpr)
         }
     }.orEmpty()
 
@@ -436,11 +430,8 @@ private fun resolveToCodeBlockExpr(expr: KtExpression): KtExpression? {
 
     if (expr is KtNameReferenceExpression) {
         // K2 symbol resolution — must be in a read action (enforced by callers)
-        val initializer: KtExpression? = analyze(expr) {
-            val call = expr.resolveToCall()?.singleCallOrNull<KaCallableMemberCall<*, *>>()
-            val property = call?.partiallyAppliedSymbol?.symbol?.psi as? KtProperty
-            property?.initializer
-        }
+        val property = KotlinAnalysisBridges.instance.resolveCall(expr)?.symbolPsi as? KtProperty
+        val initializer: KtExpression? = property?.initializer
         return initializer?.takeIf { it.isCodeBlockExpr() }
     }
 

@@ -2,7 +2,6 @@ package io.github.kingg22.kotlinpoet.assistant.infrastructure.completion
 
 import com.intellij.codeInsight.AutoPopupController
 import com.intellij.codeInsight.editorActions.TypedHandlerDelegate
-import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.project.Project
@@ -10,6 +9,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.parentOfType
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.looksLikeKotlinPoetCall
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.rethrowControlFlowException
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression

@@ -1,6 +1,5 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis
 
-import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbService
 import com.intellij.openapi.util.Key
@@ -8,6 +7,7 @@ import com.intellij.psi.util.CachedValue
 import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import io.github.kingg22.kotlinpoet.assistant.domain.extractor.FormatContextExtractorRegistry
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.rethrowControlFlowException
 import org.jetbrains.kotlin.psi.KtCallExpression
 
 private val logger = Logger.getInstance("KotlinPoetAnalysisService")

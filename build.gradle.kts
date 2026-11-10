@@ -58,6 +58,12 @@ dependencies {
     testRuntimeOnly(libs.junit.platform)
     testRuntimeOnly(libs.junit.vintage.engine)
 
+    // K2 Analysis API facade: one implementation per API flavour, selected at runtime by IDE build number.
+    // Both are referenced directly; the JVM links lazily, so only the matching one is ever loaded.
+    implementation(project(":k2-api"))
+    implementation(project(":k2-legacy"))
+    implementation(project(":k2-modern"))
+
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
         intellijIdea(providers.gradleProperty("platformVersion"))
@@ -147,6 +153,8 @@ intellijPlatform {
 
         ideaVersion {
             sinceBuild = providers.gradleProperty("pluginSinceBuild")
+            // Explicitly open-ended: never cap the plugin to the IDE it was built against.
+            untilBuild = provider { null }
         }
     }
 

@@ -1,6 +1,5 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation
 
-import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.platform.backend.documentation.DocumentationTarget
 import com.intellij.platform.backend.documentation.DocumentationTargetProvider
@@ -9,6 +8,7 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol.SymbolT
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation.DocToken.Control
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.documentation.DocToken.Placeholder
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.rethrowControlFlowException
 import org.jetbrains.kotlin.idea.KotlinLanguage
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression

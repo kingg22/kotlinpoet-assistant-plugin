@@ -1,7 +1,6 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.completion
 
 import com.intellij.codeInsight.completion.CompletionConfidence
-import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiElement
@@ -9,6 +8,7 @@ import com.intellij.psi.PsiFile
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.ThreeState
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.looksLikeKotlinPoetCall
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.rethrowControlFlowException
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtStringTemplateExpression
 

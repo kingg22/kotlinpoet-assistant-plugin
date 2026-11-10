@@ -9,8 +9,6 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentValue
 import io.github.kingg22.kotlinpoet.assistant.domain.parser.StringFormatParser
 import io.github.kingg22.kotlinpoet.assistant.domain.text.TextSpan
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.extractMapEntry
-import org.jetbrains.kotlin.analysis.api.expressions.expressionType
-import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtValueArgument
 
@@ -19,14 +17,14 @@ class NamedFormatExtractor(private val parser: StringFormatParser) : FormatConte
         val target = KotlinPoetCallTargetResolver.resolve(call) ?: return null
         if (target.methodName != "addNamed") return null
 
-        return analyze(call) {
+        return run {
             val args: List<KtValueArgument> = call.valueArguments
             // addNamed(format, map) -> requiere al menos 2 argumentos
-            if (args.size < 2) return@analyze null
+            if (args.size < 2) return@run null
 
             // 1. Extraer Formato
-            val formatArgExpr = args[0].getArgumentExpression() ?: return@analyze null
-            val formatText = extract(formatArgExpr) ?: return@analyze null
+            val formatArgExpr = args[0].getArgumentExpression() ?: return@run null
+            val formatText = extract(formatArgExpr) ?: return@run null
 
             val formatModel = parser.parse(formatText, true, target.methodName)
 
@@ -53,7 +51,7 @@ class NamedFormatExtractor(private val parser: StringFormatParser) : FormatConte
                         return@forEach
                     }
 
-                    val valueType = with(ArgumentTypeMapper) { map(valueExpr?.expressionType) }
+                    val valueType = ArgumentTypeMapper.map(valueExpr)
                     val span = valueExpr?.textRange?.let { TextSpan.of(it.startOffset..<it.endOffset) }
                     mapEntries[keyVal] = ArgumentValue.named(keyVal, valueType, span)
                 }

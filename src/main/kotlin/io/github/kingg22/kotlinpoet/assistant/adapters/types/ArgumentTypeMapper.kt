@@ -1,39 +1,36 @@
 package io.github.kingg22.kotlinpoet.assistant.adapters.types
 
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ArgumentType
-import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.types.KaClassType
-import org.jetbrains.kotlin.analysis.api.types.KaType
-import org.jetbrains.kotlin.analysis.api.types.allSupertypes
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.KotlinAnalysisBridges
+import io.github.kingg22.kotlinpoet.assistant.k2.TypeInfo
+import org.jetbrains.kotlin.psi.KtExpression
 
 /**
- * Utility to map K2 Analysis API types to our Domain ArgumentType.
+ * Utility to map K2 Analysis API types (via [TypeInfo]) to our Domain ArgumentType.
  */
 object ArgumentTypeMapper {
+    /** Resolves the type of [expression] and maps it. Must be called inside a read action. */
     @JvmStatic
-    context(_: KaSession)
-    fun map(type: KaType?): ArgumentType {
+    fun map(expression: KtExpression?): ArgumentType {
+        val type = expression?.let { KotlinAnalysisBridges.instance.typeOf(it, withSupertypes = true) }
+        return map(type)
+    }
+
+    @JvmStatic
+    fun map(type: TypeInfo?): ArgumentType {
         if (type == null) return ArgumentType.NullType
 
-        if (type is KaClassType) {
-            val fqName = type.classId.asSingleFqName().asString()
+        val classId = type.classId ?: return ArgumentType.Unknown("Complex or unresolved type: ${type.description}")
+        val fqName = classId.asSingleFqName().asString()
 
-            // 1. Check for String
-            if (fqName == "kotlin.String") return ArgumentType.StringType
+        // 1. Check for String
+        if (fqName == "kotlin.String") return ArgumentType.StringType
 
-            // 2. Check for Primitives (Int, Boolean, etc.)
-            if (fqName in primitiveTypes) return ArgumentType.Primitive(fqName)
+        // 2. Check for Primitives (Int, Boolean, etc.)
+        if (fqName in primitiveTypes) return ArgumentType.Primitive(fqName)
 
-            // 3. Capture class type + supertypes to allow hierarchy checks
-            val supertypes = type.allSupertypes
-                .mapNotNull { superType ->
-                    (superType as? KaClassType)?.classId?.asSingleFqName()?.asString()
-                }
-                .toSet()
-            return ArgumentType.Class(fqName, supertypes)
-        }
-
-        return ArgumentType.Unknown("Complex or unresolved type: $type")
+        // 3. Capture class type + supertypes to allow hierarchy checks
+        return ArgumentType.Class(fqName, type.supertypeFqNames)
     }
 }
 

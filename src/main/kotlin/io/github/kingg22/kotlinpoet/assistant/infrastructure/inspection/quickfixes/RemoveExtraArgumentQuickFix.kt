@@ -5,7 +5,6 @@ import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.project.Project
 import io.github.kingg22.kotlinpoet.assistant.KPoetAssistantBundle
 import org.jetbrains.annotations.Nls
-import org.jetbrains.kotlin.idea.base.psi.deleteValueArgument
 import org.jetbrains.kotlin.psi.KtCallExpression
 
 /**
@@ -16,7 +15,7 @@ import org.jetbrains.kotlin.psi.KtCallExpression
  * of the extra argument back to its concrete [org.jetbrains.kotlin.psi.KtValueArgument] in the
  * PSI tree. See [KotlinPoetExtraArgumentInspection.buildFix][io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections.ExtraArgumentInspection].
  *
- * [KtValueArgumentList.removeArgument] is used so that the surrounding comma is removed cleanly.
+ * [removeValueArgumentCompat] is used so that the surrounding comma is removed cleanly.
  */
 class RemoveExtraArgumentQuickFix(private val argPsiIndex: Int) : LocalQuickFix {
 
@@ -30,6 +29,6 @@ class RemoveExtraArgumentQuickFix(private val argPsiIndex: Int) : LocalQuickFix 
         val call = descriptor.psiElement as? KtCallExpression ?: return
         val argList = call.valueArgumentList ?: return
         val toRemove = argList.arguments.getOrNull(argPsiIndex) ?: return
-        argList.deleteValueArgument(toRemove)
+        argList.removeValueArgumentCompat(toRemove)
     }
 }

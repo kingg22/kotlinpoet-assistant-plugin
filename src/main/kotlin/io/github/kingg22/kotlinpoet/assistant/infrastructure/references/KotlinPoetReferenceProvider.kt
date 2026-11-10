@@ -1,6 +1,5 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.references
 
-import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.model.Symbol
 import com.intellij.model.psi.PsiExternalReferenceHost
 import com.intellij.model.psi.PsiSymbolReference
@@ -17,6 +16,7 @@ import io.github.kingg22.kotlinpoet.assistant.domain.model.PlaceholderSpec
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.putCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.resolveNamedTarget
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.rethrowControlFlowException
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.toTextRange
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtExpression

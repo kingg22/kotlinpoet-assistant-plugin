@@ -9,7 +9,6 @@ import io.github.kingg22.kotlinpoet.assistant.infrastructure.extractor.KotlinPoe
 import org.intellij.lang.annotations.Language
 import org.jetbrains.kotlin.analysis.api.permissions.KaAllowAnalysisOnEdt
 import org.jetbrains.kotlin.analysis.api.permissions.allowAnalysisOnEdt
-import org.jetbrains.kotlin.analysis.api.session.analyze
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtFile
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
@@ -65,12 +64,10 @@ class KotlinPoetCallTargetResolverTest : BasePlatformTestCase() {
         val entryArg = mapCall.valueArguments.firstOrNull()?.getArgumentExpression() ?: return
 
         allowAnalysisOnEdt {
-            analyze(addNamed) {
-                val result = extractMapEntry(entryArg)
-                assertNotNull("extractMapEntry should return non-null for infix 'to'", result)
-                assertEquals("food", result!!.first)
-                assertNotNull("Value expression should not be null", result.second)
-            }
+            val result = extractMapEntry(entryArg)
+            assertNotNull("extractMapEntry should return non-null for infix 'to'", result)
+            assertEquals("food", result!!.first)
+            assertNotNull("Value expression should not be null", result.second)
         }
     }
 
@@ -89,11 +86,9 @@ class KotlinPoetCallTargetResolverTest : BasePlatformTestCase() {
         val entryArg = mapCall.valueArguments.firstOrNull()?.getArgumentExpression() ?: return
 
         allowAnalysisOnEdt {
-            analyze(addNamed) {
-                val result = extractMapEntry(entryArg)
-                assertNotNull("extractMapEntry should handle dot-qualified .to()", result)
-                assertEquals("count", result?.first)
-            }
+            val result = extractMapEntry(entryArg)
+            assertNotNull("extractMapEntry should handle dot-qualified .to()", result)
+            assertEquals("count", result?.first)
         }
     }
 
@@ -112,29 +107,16 @@ class KotlinPoetCallTargetResolverTest : BasePlatformTestCase() {
         val entryArg = mapCall.valueArguments.firstOrNull()?.getArgumentExpression() ?: return
 
         allowAnalysisOnEdt {
-            analyze(addNamed) {
-                val result = extractMapEntry(entryArg)
-                assertNotNull("extractMapEntry should handle Pair() constructor", result)
-                assertEquals("item", result?.first)
-            }
+            val result = extractMapEntry(entryArg)
+            assertNotNull("extractMapEntry should handle Pair() constructor", result)
+            assertEquals("item", result?.first)
         }
     }
 
     fun testExtractMapEntry_nullReturnsNull() {
-        val file = configureKotlin(
-            """
-            import com.squareup.kotlinpoet.CodeBlock
-            fun test() {
-                CodeBlock.builder().add("%L", 1)
-            }
-        """,
-        )
-        val add = file.callsNamed("add").firstOrNull() ?: return
         allowAnalysisOnEdt {
-            analyze(add) {
-                val result = extractMapEntry(null)
-                assertNull("null expression should return null", result)
-            }
+            val result = extractMapEntry(null)
+            assertNull("null expression should return null", result)
         }
     }
 

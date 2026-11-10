@@ -2,33 +2,23 @@ package io.github.kingg22.kotlinpoet.assistant.infrastructure.extractor
 
 import io.github.kingg22.kotlinpoet.assistant.Constants
 import io.github.kingg22.kotlinpoet.assistant.domain.extractor.KotlinPoetCallTarget
-import org.jetbrains.kotlin.analysis.api.components.resolveToCall
-import org.jetbrains.kotlin.analysis.api.expressions.expressionType
-import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
-import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
-import org.jetbrains.kotlin.analysis.api.resolution.symbol
-import org.jetbrains.kotlin.analysis.api.session.analyze
-import org.jetbrains.kotlin.analysis.api.types.KaClassType
-import org.jetbrains.kotlin.analysis.api.types.KaErrorType
-import org.jetbrains.kotlin.analysis.api.types.KaType
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.KotlinAnalysisBridges
+import io.github.kingg22.kotlinpoet.assistant.k2.TypeInfo
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtNamedFunction
 import org.jetbrains.kotlin.psi.psiUtil.collectDescendantsOfType
 import org.jetbrains.kotlin.psi.psiUtil.getQualifiedExpressionForSelector
-import kotlin.contracts.contract
 
 object KotlinPoetCallTargetResolver {
     @JvmStatic
-    fun resolve(call: KtCallExpression): KotlinPoetCallTarget? = analyze(call) {
-        val resolvedCall: KaCallableMemberCall<*, *>? = call.resolveToCall()?.singleCallOrNull()
+    fun resolve(call: KtCallExpression): KotlinPoetCallTarget? = with(KotlinAnalysisBridges.instance) {
+        val resolvedCall = resolveCall(call)
 
-        val methodName = resolvedCall?.partiallyAppliedSymbol?.symbol?.callableId?.callableName?.asString()
-            ?: call.calleeExpression?.text.orEmpty()
-        val receiverType = resolvedCall?.partiallyAppliedSymbol?.dispatchReceiver?.type
-            ?: resolvedCall?.partiallyAppliedSymbol?.extensionReceiver?.type
+        val methodName = resolvedCall?.callableName ?: call.calleeExpression?.text.orEmpty()
+        val receiverType = resolvedCall?.receiverType
 
-        if (receiverType != null && !receiverType.isError() && isKotlinPoetTarget(methodName, receiverType)) {
-            return@analyze KotlinPoetCallTarget(
+        if (receiverType != null && !receiverType.isError && isKotlinPoetTarget(methodName, receiverType)) {
+            return@with KotlinPoetCallTarget(
                 methodName = methodName,
                 receiverFqName = receiverType.asFqNameOrNull(),
                 isDelegated = false,
@@ -37,14 +27,14 @@ object KotlinPoetCallTargetResolver {
 
         if (resolvedCall == null) {
             val qualified = call.getQualifiedExpressionForSelector()
-            val fallbackReceiver = qualified?.receiverExpression?.expressionType
+            val fallbackReceiver = qualified?.receiverExpression?.let { typeOf(it) }
 
             // Guard: skip error types — they indicate K2 could not resolve the receiver
             // (e.g., unresolved reference, incomplete classpath in test environments).
-            if (fallbackReceiver != null && !fallbackReceiver.isError() &&
+            if (fallbackReceiver != null && !fallbackReceiver.isError &&
                 isKotlinPoetTarget(methodName, fallbackReceiver)
             ) {
-                return@analyze KotlinPoetCallTarget(
+                return@with KotlinPoetCallTarget(
                     methodName = methodName,
                     receiverFqName = fallbackReceiver.asFqNameOrNull(),
                     isDelegated = false,
@@ -59,7 +49,7 @@ object KotlinPoetCallTargetResolver {
             if (methodName in FORMAT_METHODS || methodName in KDOC_METHODS) {
                 val receiverText = qualified?.receiverExpression?.text.orEmpty()
                 if (looksLikeKotlinPoetChain(receiverText)) {
-                    return@analyze KotlinPoetCallTarget(
+                    return@with KotlinPoetCallTarget(
                         methodName = methodName,
                         receiverFqName = null,
                         isDelegated = false,
@@ -67,51 +57,38 @@ object KotlinPoetCallTargetResolver {
                 }
             }
 
-            return@analyze null
+            return@with null
         }
 
-        val functionPsi = resolvedCall.partiallyAppliedSymbol.symbol.psi as? KtNamedFunction ?: return@analyze null
-        val body = functionPsi.bodyExpression ?: return@analyze null
+        val functionPsi = resolvedCall.symbolPsi as? KtNamedFunction ?: return@with null
+        val body = functionPsi.bodyExpression ?: return@with null
 
         val delegated = body.collectDescendantsOfType<KtCallExpression>()
             .firstOrNull { it.calleeExpression?.text in FORMAT_METHODS || it.calleeExpression?.text in KDOC_METHODS }
-            ?: return@analyze null
+            ?: return@with null
 
-        val delegatedResolved: KaCallableMemberCall<*, *> =
-            delegated.resolveToCall()?.singleCallOrNull() ?: return@analyze null
-        val delegatedReceiver = delegatedResolved.partiallyAppliedSymbol.dispatchReceiver?.type
-            ?: delegatedResolved.partiallyAppliedSymbol.extensionReceiver?.type
-        if (delegatedReceiver != null && !delegatedReceiver.isError() &&
+        val delegatedResolved = resolveCall(delegated) ?: return@with null
+        val delegatedReceiver = delegatedResolved.receiverType
+        if (delegatedReceiver != null && !delegatedReceiver.isError &&
             isKotlinPoetTarget(delegated.calleeExpression?.text.orEmpty(), delegatedReceiver)
         ) {
-            return@analyze KotlinPoetCallTarget(
+            return@with KotlinPoetCallTarget(
                 methodName = delegated.calleeExpression?.text.orEmpty(),
                 receiverFqName = delegatedReceiver.asFqNameOrNull(),
                 isDelegated = true,
             )
         }
 
-        return@analyze null
+        return@with null
     }
 }
 
 private val FORMAT_METHODS = setOf("add", "addNamed", "addStatement", "addCode", "beginControlFlow", "of")
 private val KDOC_METHODS = setOf("addKdoc")
 
-private fun KaType.asFqNameOrNull(): String? = (this as? KaClassType)?.classId?.asSingleFqName()?.asString()
+private fun TypeInfo.asFqNameOrNull(): String? = classId?.asSingleFqName()?.asString()
 
-/**
- * `true` when this type is a [KaErrorType] — i.e., K2 could not resolve it.
- *
- * Used as a guard before all [isKotlinPoetTarget] calls so that unresolved/error
- * types are never mistakenly treated as valid KotlinPoet receiver types.
- */
-private fun KaType.isError(): Boolean {
-    contract { returns(true) implies (this@isError is KaErrorType) }
-    return this is KaErrorType
-}
-
-private fun isKotlinPoetTarget(methodName: String, receiverType: KaType): Boolean {
+private fun isKotlinPoetTarget(methodName: String, receiverType: TypeInfo): Boolean {
     if (receiverType.isKotlinPoetBuilder()) return true
     val fqName = receiverType.asFqNameOrNull()
     if (fqName?.startsWith("com.squareup.kotlinpoet.") == true) {
@@ -121,13 +98,11 @@ private fun isKotlinPoetTarget(methodName: String, receiverType: KaType): Boolea
 }
 
 /** Checks if a given type matches any of the known KotlinPoet builders that delegate to CodeBlock. */
-private fun KaType.isKotlinPoetBuilder(): Boolean {
-    if (this is KaClassType) {
-        if (this.classId in Constants.ClassIds.ALL) return true
-        val fqName = this.classId.asSingleFqName().asString()
-        if (fqName.startsWith("com.squareup.kotlinpoet.") && fqName.endsWith(".Builder")) return true
-    }
-    return false
+private fun TypeInfo.isKotlinPoetBuilder(): Boolean {
+    val classId = classId ?: return false
+    if (classId in Constants.ClassIds.ALL) return true
+    val fqName = classId.asSingleFqName().asString()
+    return fqName.startsWith("com.squareup.kotlinpoet.") && fqName.endsWith(".Builder")
 }
 
 private val knownEntryPoints = setOf(

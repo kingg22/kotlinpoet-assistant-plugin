@@ -1,19 +1,8 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.chain
 
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.ResolvedText
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.ArgumentTextResolver.resolve
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.KotlinAnalysisBridges
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.unescaped
-import org.jetbrains.kotlin.analysis.api.KaSession
-import org.jetbrains.kotlin.analysis.api.base.KaConstantValue
-import org.jetbrains.kotlin.analysis.api.base.KaConstantValue.*
-import org.jetbrains.kotlin.analysis.api.components.resolveToCall
-import org.jetbrains.kotlin.analysis.api.evaluation.evaluate
-import org.jetbrains.kotlin.analysis.api.expressions.expressionType
-import org.jetbrains.kotlin.analysis.api.resolution.KaCallableMemberCall
-import org.jetbrains.kotlin.analysis.api.resolution.singleCallOrNull
-import org.jetbrains.kotlin.analysis.api.resolution.symbol
-import org.jetbrains.kotlin.analysis.api.session.analyze
-import org.jetbrains.kotlin.analysis.api.types.KaClassType
 import org.jetbrains.kotlin.psi.KtClassLiteralExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression
 import org.jetbrains.kotlin.psi.KtExpression
@@ -28,7 +17,7 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression
  * ## Resolution strategy (in order)
  *
  * 1. **String literal** (`KtStringTemplateExpression` with no interpolation): raw text.
- * 2. **[KaConstantValue]** via K2 `evaluate()`: handles all primitive + String constants
+ * 2. **Constant** via K2 `evaluate()`: handles all primitive + String constants
  *    and constant expressions (e.g., `1 + 2` → `3`).
  * 3. **Class literal** (`SomeClass::class` or `SomeClass::class.java`).
  * 4. **Name reference** to a `val`/`var` with a literal initializer — one hop via K2.
@@ -36,8 +25,8 @@ import org.jetbrains.kotlin.psi.KtStringTemplateExpression
  *
  * ## Threading
  *
- * [resolve] opens its own `analyze {}` session. [resolveInSession] must be
- * called inside an active session — used when the caller already holds one.
+ * Must be called inside a read action. Each K2 query opens its own short `analyze {}` session
+ * through [KotlinAnalysisBridges], which hides the Analysis API differences between IDE versions.
  */
 object ArgumentTextResolver {
 
@@ -50,27 +39,13 @@ object ArgumentTextResolver {
      * @return A displayable string, or `null` if resolution is not possible.
      */
     @JvmStatic
-    fun resolve(expr: KtExpression, followReferences: Boolean = true): ResolvedText? =
-        analyze(expr) { resolveInSession(expr, followReferences) }
-
-    // ── Session-internal resolution (callable without starting a new analyze{}) ─
-
-    /**
-     * Resolves [expr] within the current [KaSession].
-     *
-     * @param followReferences Follow one level of property reference. `false` prevents
-     *        infinite recursion in recursive calls.
-     */
-    @JvmStatic
-    context(_: KaSession)
-    fun resolveInSession(expr: KtExpression, followReferences: Boolean = true): ResolvedText? {
+    fun resolve(expr: KtExpression, followReferences: Boolean = true): ResolvedText? {
         if (expr is KtStringTemplateExpression) return resolveStringTemplate(expr)
 
-        // KaConstantValue covers: IntValue, LongValue, FloatValue, DoubleValue, ByteValue,
-        // ShortValue, UIntValue, ULongValue, UByteValue, UShortValue, BooleanValue,
-        // CharValue, StringValue, NullValue, ErrorValue.
-        val constant = expr.evaluate()
-        if (constant != null) return resolveConstant(constant)
+        // Covers primitive + String constants and constant expressions. A null or erroneous
+        // constant short-circuits the resolution (no further fallbacks).
+        val constant = KotlinAnalysisBridges.instance.evaluateConstant(expr)
+        if (constant != null) return resolveConstant(constant.value)
 
         val classRef = resolveClassLiteral(expr)
         if (classRef != null) return classRef
@@ -89,45 +64,37 @@ private fun resolveStringTemplate(expr: KtStringTemplateExpression): ResolvedTex
     return ResolvedText.StringLiteral(raw.unescaped())
 }
 
-// Can't merge cases because doesn't share a common interface
-private fun resolveConstant(constant: KaConstantValue): ResolvedText? = when (constant) {
-    is StringValue -> ResolvedText.StringLiteral(constant.value.unescaped())
-    is IntValue -> ResolvedText.NumberLiteral(constant.value)
-    is LongValue -> ResolvedText.NumberLiteral(constant.value)
-    is FloatValue -> ResolvedText.NumberLiteral(constant.value)
-    is DoubleValue -> ResolvedText.NumberLiteral(constant.value)
-    is ByteValue -> ResolvedText.NumberLiteral(constant.value)
-    is ShortValue -> ResolvedText.NumberLiteral(constant.value)
-    is BooleanValue -> ResolvedText.Primitive(constant.value.toString())
-    is CharValue -> ResolvedText.Primitive("'${constant.value}'")
-    is UIntValue -> ResolvedText.NumberLiteral(constant.value.toLong())
-    is ULongValue -> ResolvedText.Primitive("${constant.value}UL")
-    is UByteValue -> ResolvedText.NumberLiteral(constant.value.toInt())
-    is UShortValue -> ResolvedText.NumberLiteral(constant.value.toInt())
-    is NullValue, is ErrorValue -> null
+private fun resolveConstant(value: Any?): ResolvedText? = when (value) {
+    is String -> ResolvedText.StringLiteral(value.unescaped())
+    is Int -> ResolvedText.NumberLiteral(value)
+    is Long -> ResolvedText.NumberLiteral(value)
+    is Float -> ResolvedText.NumberLiteral(value)
+    is Double -> ResolvedText.NumberLiteral(value)
+    is Byte -> ResolvedText.NumberLiteral(value)
+    is Short -> ResolvedText.NumberLiteral(value)
+    is Boolean -> ResolvedText.Primitive(value.toString())
+    is Char -> ResolvedText.Primitive("'$value'")
+    is UInt -> ResolvedText.NumberLiteral(value.toLong())
+    is ULong -> ResolvedText.Primitive("${value}UL")
+    is UByte -> ResolvedText.NumberLiteral(value.toInt())
+    is UShort -> ResolvedText.NumberLiteral(value.toInt())
+    else -> null
 }
 
-context(_: KaSession)
 private fun resolveClassLiteral(expr: KtExpression): ResolvedText? {
-    if (expr is KtClassLiteralExpression) {
-        val type = expr.receiverExpression?.expressionType as? KaClassType ?: return null
-        return ResolvedText.TypeReference(type.classId.shortClassName.asString())
-    }
-    if (expr is KtDotQualifiedExpression) {
-        val receiver = expr.receiverExpression as? KtClassLiteralExpression ?: return null
-        val type = receiver.receiverExpression?.expressionType as? KaClassType ?: return null
-        return ResolvedText.TypeReference(type.classId.shortClassName.asString())
-    }
-    return null
+    val classLiteral = when (expr) {
+        is KtClassLiteralExpression -> expr
+        is KtDotQualifiedExpression -> expr.receiverExpression as? KtClassLiteralExpression
+        else -> null
+    } ?: return null
+    val receiver = classLiteral.receiverExpression ?: return null
+    val classId = KotlinAnalysisBridges.instance.typeOf(receiver)?.classId ?: return null
+    return ResolvedText.TypeReference(classId.shortClassName.asString())
 }
 
-context(_: KaSession)
 private fun resolveNameReference(expr: KtNameReferenceExpression): ResolvedText? {
-    val psi = expr.resolveToCall()
-        ?.singleCallOrNull<KaCallableMemberCall<*, *>>()
-        ?.partiallyAppliedSymbol?.symbol?.psi
-        ?: return null
+    val psi = KotlinAnalysisBridges.instance.resolveCall(expr)?.symbolPsi
     if (psi !is KtProperty) return null
     val initializer = psi.initializer ?: return null
-    return resolve(initializer, followReferences = false)
+    return ArgumentTextResolver.resolve(initializer, followReferences = false)
 }

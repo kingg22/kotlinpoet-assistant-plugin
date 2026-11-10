@@ -1,6 +1,5 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.annotator
 
-import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.Annotator
 import com.intellij.lang.annotation.HighlightSeverity
@@ -11,6 +10,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.putCachedAnalysis
+import io.github.kingg22.kotlinpoet.assistant.infrastructure.rethrowControlFlowException
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.toTextRanges
 import org.jetbrains.kotlin.psi.KtCallExpression
 
