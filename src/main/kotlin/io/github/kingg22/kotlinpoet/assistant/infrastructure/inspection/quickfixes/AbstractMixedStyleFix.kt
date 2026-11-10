@@ -10,6 +10,7 @@ import com.intellij.codeInsight.template.impl.ConstantNode
 import com.intellij.codeInspection.LocalQuickFix
 import com.intellij.codeInspection.ProblemDescriptor
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.editor.Editor
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.project.Project
@@ -53,7 +54,7 @@ abstract class AbstractMixedStyleFix(protected val placeholders: List<Placeholde
 
     final override fun applyFix(project: Project, descriptor: ProblemDescriptor) {
         val call = descriptor.psiElement.parentOfType<KtCallExpression>(withSelf = true) ?: return
-        val editor = FileEditorManager.getInstance(project).selectedTextEditor ?: return
+        val editor = project.service<FileEditorManager>().selectedTextEditor ?: return
 
         val formatArg = call.valueArguments.firstOrNull()?.getArgumentExpression()
             as? KtStringTemplateExpression ?: return

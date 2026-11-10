@@ -2,6 +2,7 @@ package io.github.kingg22.kotlinpoet.assistant.infrastructure.toolwindow
 
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ReadAction
+import com.intellij.openapi.components.service
 import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
@@ -49,7 +50,7 @@ class CodeBlockChainToolWindowFactory : ToolWindowFactory {
 
                 override fun selectionChanged(event: FileEditorManagerEvent) {
                     panel.showPlaceholder("Move cursor into a KotlinPoet builder call")
-                    FileEditorManager.getInstance(project)
+                    project.service<FileEditorManager>()
                         .selectedTextEditor
                         ?.let { scheduler.attachTo(it, triggerImmediate = true) }
                 }
@@ -58,7 +59,7 @@ class CodeBlockChainToolWindowFactory : ToolWindowFactory {
 
         // Attach to the editor already open when the tool window is created and
         // immediately trigger analysis so the panel isn't empty on first open.
-        FileEditorManager.getInstance(project)
+        project.service<FileEditorManager>()
             .selectedTextEditor
             ?.let { scheduler.attachTo(it, triggerImmediate = true) }
     }
