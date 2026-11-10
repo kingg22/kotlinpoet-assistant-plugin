@@ -1,8 +1,6 @@
 package io.github.kingg22.kotlinpoet.assistant.domain.chain
 
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.MethodSemantics.*
-import io.github.kingg22.kotlinpoet.assistant.domain.chain.MethodSemanticsClassifier.classify
-import io.github.kingg22.kotlinpoet.assistant.domain.chain.MethodSemanticsClassifier.computeDelta
 import io.github.kingg22.kotlinpoet.assistant.domain.model.ControlSymbol
 import io.github.kingg22.kotlinpoet.assistant.domain.model.FormatStringModel
 

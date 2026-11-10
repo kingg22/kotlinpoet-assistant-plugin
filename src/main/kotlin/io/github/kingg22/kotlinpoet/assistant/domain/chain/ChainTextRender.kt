@@ -46,11 +46,11 @@ private class ChainRenderer {
     private var indentLevel = 0
     private var atLineStart = true
 
-    fun renderContribution(contributions: List<MethodEmissionContribution>) = apply {
+    fun renderContribution(contributions: List<MethodEmissionContribution>): ChainRenderer = apply {
         contributions.flatMap { it.parts }.forEach { renderPart(it) }
     }
 
-    fun renderContribution(contribution: MethodEmissionContribution) = apply {
+    fun renderContribution(contribution: MethodEmissionContribution): ChainRenderer = apply {
         contribution.parts.forEach { renderPart(it) }
     }
 

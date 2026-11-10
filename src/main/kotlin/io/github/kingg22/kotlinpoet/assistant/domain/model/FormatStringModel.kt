@@ -19,7 +19,7 @@ data class FormatStringModel(
     /**
      * **Non-blocking** parser-level warnings (e.g. dangling `%`, unknown placeholder type,
      * invalid positional index). These do NOT stop binding or validation.
-     * They are surfaced via [io.github.kingg22.kotlinpoet.assistant.infrastructure.inspections.KotlinPoetFormatSyntaxInspection]
+     * They are surfaced via [io.github.kingg22.kotlinpoet.assistant.infrastructure.inspection.inspections.FormatSyntaxInspection]
      * and can offer quick fixes.
      *
      * [FormatProblem.data] carries a [ParserIssueKind] tag so the inspection layer can select

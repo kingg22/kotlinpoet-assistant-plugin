@@ -10,6 +10,7 @@ data class KotlinPoetHintsSettings(
     @JvmField var maxLineLength: Int = 80,
 ) {
     companion object {
+        @Suppress("UnstableApiUsage")
         @JvmField
         val KEY: SettingsKey<KotlinPoetHintsSettings> = SettingsKey("kotlinpoet.chain.preview")
     }

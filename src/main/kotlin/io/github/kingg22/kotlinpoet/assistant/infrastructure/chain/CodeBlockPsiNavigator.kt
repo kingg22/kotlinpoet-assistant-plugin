@@ -5,11 +5,6 @@ import com.intellij.util.concurrency.annotations.RequiresReadLock
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.BUILDER_METHOD_NAMES
 import io.github.kingg22.kotlinpoet.assistant.domain.chain.DSL_BUILDER_NAMES
 import io.github.kingg22.kotlinpoet.assistant.infrastructure.analysis.getCachedAnalysis
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator.findBuilderCallAt
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator.findChain
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator.findPredecessorCall
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator.findSuccessorCall
-import io.github.kingg22.kotlinpoet.assistant.infrastructure.chain.CodeBlockPsiNavigator.walkBackward
 import org.jetbrains.kotlin.psi.KtBlockExpression
 import org.jetbrains.kotlin.psi.KtCallExpression
 import org.jetbrains.kotlin.psi.KtDotQualifiedExpression

@@ -6,6 +6,7 @@ import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiElement
 
 /** Representa una referencia a un argumento de KotlinPoet como un destino navegable. */
+@Suppress("UnstableApiUsage")
 data class KotlinPoetPlaceholderReference(
     private val element: PsiElement,
     private val range: TextRange,

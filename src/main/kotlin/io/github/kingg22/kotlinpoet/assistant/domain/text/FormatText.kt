@@ -20,9 +20,9 @@ data class FormatText(val segments: List<FormatTextSegment>) {
     fun isIndexInDynamic(index: Int): Boolean {
         if (index !in 0 until length) return false
         var cursor = 0
-        for (segment in segments) {
-            val end = cursor + segment.text.length
-            if (index < end) return segment.kind == SegmentKind.DYNAMIC
+        for ((text, _, kind) in segments) {
+            val end = cursor + text.length
+            if (index < end) return kind == SegmentKind.DYNAMIC
             cursor = end
         }
         return false
@@ -41,8 +41,8 @@ data class FormatText(val segments: List<FormatTextSegment>) {
         val ranges = mutableListOf<IntRange>()
         var cursor = 0
 
-        for (segment in segments) {
-            val segmentLength = segment.text.length
+        for ((text, range) in segments) {
+            val segmentLength = text.length
             val segmentStartIndex = cursor
             val segmentEndIndex = cursor + segmentLength
 
@@ -55,8 +55,8 @@ data class FormatText(val segments: List<FormatTextSegment>) {
                 val localStart = overlapStart - segmentStartIndex
                 val localEndExclusive = overlapEnd - segmentStartIndex
 
-                val absoluteStart = segment.range.first + localStart
-                val absoluteEndInclusive = segment.range.first + localEndExclusive - 1
+                val absoluteStart = range.first + localStart
+                val absoluteEndInclusive = range.first + localEndExclusive - 1
 
                 ranges += absoluteStart..absoluteEndInclusive
             }
@@ -80,12 +80,11 @@ data class FormatText(val segments: List<FormatTextSegment>) {
     fun toRelativeOffset(absolute: Int): Int? {
         var cursor = 0
 
-        for (segment in segments) {
-            val range = segment.range
+        for ((text, range) in segments) {
             if (absolute in range) {
                 return cursor + (absolute - range.first)
             }
-            cursor += segment.text.length
+            cursor += text.length
         }
 
         return null
