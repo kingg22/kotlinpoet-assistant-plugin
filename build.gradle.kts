@@ -6,6 +6,7 @@ import org.jetbrains.changelog.ChangelogPluginConstants
 import org.jetbrains.changelog.markdownToHTML
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.RunIdeTask
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
@@ -48,11 +49,11 @@ kotlin {
     jvmToolchain(21)
 }
 
-// IDE versions to launch the plugin on by hand: `./gradlew runIde262` etc. The plugin is built once against the
-// compile baseline (`platformVersion`) and runs unchanged on each of them, which is the real end-to-end check that
-// the version-specific K2 module is picked and loaded. Automated checks: `verifyPlugin` and the `-PplatformVersion`
-// test matrix in CI.
-val runIdeVersions = mapOf(
+// IDE versions the plugin must run on besides the compile baseline (`platformVersion`, the oldest supported IDE).
+// `./gradlew testOnXXX` runs the test suite on that IDE; `./gradlew runIdeXXX` launches it by hand. In both cases the
+// plugin is built once against the baseline and runs unchanged on the target, so this also exercises the binary
+// compatibility. Automated checks: `verifyPlugin` plus these tasks.
+val ideVersions = mapOf(
     "253" to "253.33813.99",
     "261" to "261.27258.136",
     "262" to "262.11879.100",
@@ -222,8 +223,24 @@ kover {
 }
 
 intellijPlatformTesting {
+    testIde {
+        ideVersions.forEach { (build, version) ->
+            register("testOn$build") {
+                this.version = version
+                type = IntelliJPlatformType.IntellijIdea
+                plugins {
+                    bundledPlugins(providers.gradleProperty("platformBundledPlugins").map { it.split(',') })
+                }
+                // Resolved against THIS target's IDE version (not the compile baseline).
+                testFrameworks(TestFrameworkType.Platform, TestFrameworkType.Bundled, TestFrameworkType.Plugin.Java)
+                task {
+                    useJUnitPlatform()
+                }
+            }
+        }
+    }
     runIde {
-        runIdeVersions.forEach { (build, version) ->
+        ideVersions.forEach { (build, version) ->
             register("runIde$build") {
                 this.version = version
                 type = IntelliJPlatformType.IntellijIdea
@@ -243,6 +260,16 @@ intellijPlatformTesting {
                 }
             }
         }
+    }
+}
+
+// Each IDE's test framework pulls its own JUnit generation (5.x on 252-262, 6.x on 263), and a target's classpath
+// also contains the project's JUnit. Mixing generations breaks (NoSuchMethodError in junit-platform-commons), so the
+// framework resolution of every target is aligned to the project's JUnit BOM.
+ideVersions.keys.forEach { build ->
+    dependencies {
+        "intellijPlatformTestDependencies_testOn$build"(platform(libs.junit6.bom))
+        "intellijPlatformTestClasspath_testOn$build"(platform(libs.junit6.bom))
     }
 }
 
@@ -275,6 +302,13 @@ tasks.publishPlugin {
 
 // Optional: open a project (and files) directly in any runIde task, e.g.
 // `./gradlew runIde262 -PideArgs="/path/to/project|/path/to/project/src/Main.kt"`
-tasks.withType<org.jetbrains.intellij.platform.gradle.tasks.RunIdeTask>().configureEach {
+tasks.withType<RunIdeTask>().configureEach {
     providers.gradleProperty("ideArgs").orNull?.let { args(it.split('|')) }
+}
+
+// Runs the suite on the compile baseline (`test`) and on every other supported IDE.
+tasks.register("testOnAllIdes") {
+    group = "verification"
+    description = "Runs the test suite against every supported IDE version."
+    dependsOn(tasks.test, ideVersions.keys.map { "testOn$it" })
 }

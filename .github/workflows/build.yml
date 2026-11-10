@@ -77,22 +77,23 @@ jobs:
           path: ./build/distributions/*
 
   # Run tests and upload a code coverage report.
-  # The plugin supports a wide IDE range, so the suite runs against each of them. The first entry is the compile
-  # baseline (`platformVersion` in gradle.properties, == pluginSinceBuild); the K2 Analysis API differs between
-  # IDE generations, so every entry exercises the matching `k2-legacy` / `k2-modern` implementation.
+  # The plugin supports a wide IDE range. It is compiled ONCE against the oldest supported IDE (`platformVersion`
+  # in gradle.properties == pluginSinceBuild) and the same binaries are tested on every other IDE through the
+  # `testOnXXX` tasks (intellijPlatformTesting.testIde in build.gradle.kts). Each IDE generation has a different
+  # K2 Analysis API, so every entry exercises the matching `k2-legacy` / `k2-modern` implementation.
   test:
-    name: Test (IDE ${{ matrix.platform }})
+    name: Test (${{ matrix.name }})
     needs: [ build ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        platform:
-          - 2025.2.5
-          - 253.33813.99
-          - 261.27258.136
-          - 262.11879.100
-          - 2026.3
+        include:
+          - { name: 'IDE 252 (baseline)', task: check }
+          - { name: 'IDE 253', task: testOn253 }
+          - { name: 'IDE 261', task: testOn261 }
+          - { name: 'IDE 262', task: testOn262 }
+          - { name: 'IDE 263', task: testOn263 }
     steps:
 
       # Free GitHub Actions Environment Disk Space
@@ -123,19 +124,19 @@ jobs:
 
       # Run tests
       - name: Run Tests
-        run: ./gradlew check -PplatformVersion=${{ matrix.platform }}
+        run: ./gradlew ${{ matrix.task }}
 
       # Collect Tests Result of failed tests
       - name: Collect Tests Result
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: tests-result-${{ matrix.platform }}
+          name: tests-result-${{ matrix.task }}
           path: ${{ github.workspace }}/build/reports/tests
 
       # Upload the Kover report to CodeCov
       - name: Upload Code Coverage Report
-        if: ${{ matrix.platform == '2025.2.5' }}
+        if: ${{ matrix.task == 'check' }}
         uses: codecov/codecov-action@v5
         with:
           files: ${{ github.workspace }}/build/reports/kover/report.xml
