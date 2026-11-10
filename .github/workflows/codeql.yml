@@ -1,0 +1,117 @@
+# CodeQL code scanning for the workflow files (`actions`) and the plugin sources (`java-kotlin`).
+#
+# It follows the same skip rules as the Build workflow (see build.yml): pushes only on 'main', one run per PR,
+# no duplicate runs for the same content, and no runs for Renovate's / Dependabot's PRs and commits.
+# Scheduled and manual runs always analyze.
+
+name: "CodeQL"
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  schedule:
+    - cron: '26 2 * * 4'
+  workflow_dispatch:
+
+concurrency:
+  # Same grouping as the Build workflow: a new commit cancels the PR run it replaces; pushes, scheduled and manual
+  # runs get one group per commit so that queued commits are never dropped.
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+
+  # Skips the analysis when a successful run already exists for the same content (tree hash), from a PR or a push.
+  # Scheduled and manual runs always analyze.
+  pre_job:
+    runs-on: ubuntu-latest
+    # Minimum permissions documented by skip-duplicate-actions.
+    permissions:
+      actions: write
+      contents: read
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@b974a9395958c231af965b70070979a577efa578 # v5.3.2
+        with:
+          concurrent_skipping: same_content_newer
+          skip_after_successful_duplicate: 'true'
+          do_not_skip: '["workflow_dispatch", "schedule"]'
+
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    needs: pre_job
+    # Skip Renovate's and Dependabot's PRs and commits (same rules as the `build` job). A skipped job counts as
+    # passing for required status checks. `!cancelled()` instead of the implicit `success()`: if pre_job fails its
+    # output is empty and the analysis runs, so a broken duplicate check never turns into a green skipped scan.
+    if: >-
+      !cancelled() &&
+      needs.pre_job.outputs.should_skip != 'true' &&
+      github.actor != 'renovate[bot]' &&
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.user.login != 'renovate[bot]' &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      # Required to upload the results
+      security-events: write
+      # Required to fetch internal or private CodeQL packs
+      packages: read
+      # Only required for workflows in private repositories
+      actions: read
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: java-kotlin
+            build-mode: manual
+
+    steps:
+
+      # Free GitHub Actions Environment Disk Space (the IntelliJ Platform download is large)
+      - name: Maximize Build Space
+        if: matrix.build-mode == 'manual'
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          tool-cache: false
+          large-packages: false
+
+      - name: Fetch Sources
+        uses: actions/checkout@v6
+
+      # Same toolchain as the Build workflow
+      - name: Setup Java
+        if: matrix.build-mode == 'manual'
+        uses: actions/setup-java@v6
+        with:
+          distribution: jetbrains
+          java-version: 21
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Gradle
+        if: matrix.build-mode == 'manual'
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-read-only: true
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      # Compile the plugin without tests so CodeQL can trace the Kotlin/Java compilation
+      - name: Build plugin
+        if: matrix.build-mode == 'manual'
+        run: ./gradlew buildPlugin --no-build-cache
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:${{ matrix.language }}"
