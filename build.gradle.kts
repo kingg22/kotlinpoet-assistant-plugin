@@ -51,7 +51,7 @@ dependencies {
     // https://youtrack.jetbrains.com/issue/IJPL-159134
     // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-faq.html?from=jetbrains.org#junit5-test-framework-refers-to-junit4
     testCompileOnly(libs.junit4)
-    testImplementation(platform(libs.junit5.bom))
+    testImplementation(platform(libs.junit6.bom))
     testImplementation(libs.junit5.api)
     testImplementation(libs.junit5.parametrized)
     testRuntimeOnly(libs.junit5.engine)
