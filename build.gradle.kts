@@ -4,6 +4,7 @@ import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
 import org.jetbrains.changelog.Changelog
 import org.jetbrains.changelog.ChangelogPluginConstants
 import org.jetbrains.changelog.markdownToHTML
+import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
@@ -46,6 +47,17 @@ kotlin {
 kotlin {
     jvmToolchain(21)
 }
+
+// IDE versions to launch the plugin on by hand: `./gradlew runIde262` etc. The plugin is built once against the
+// compile baseline (`platformVersion`) and runs unchanged on each of them, which is the real end-to-end check that
+// the version-specific K2 module is picked and loaded. Automated checks: `verifyPlugin` and the `-PplatformVersion`
+// test matrix in CI.
+val runIdeVersions = mapOf(
+    "253" to "253.33813.99",
+    "261" to "261.27258.136",
+    "262" to "262.11879.100",
+    "263" to "2026.3",
+)
 
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/version_catalogs.html
 dependencies {
@@ -211,6 +223,15 @@ kover {
 
 intellijPlatformTesting {
     runIde {
+        runIdeVersions.forEach { (build, version) ->
+            register("runIde$build") {
+                this.version = version
+                type = IntelliJPlatformType.IntellijIdea
+                plugins {
+                    bundledPlugins(providers.gradleProperty("platformBundledPlugins").map { it.split(',') })
+                }
+            }
+        }
         register("runIdeForUiTests") {
             task {
                 jvmArgumentProviders += CommandLineArgumentProvider {

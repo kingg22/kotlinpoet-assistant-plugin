@@ -76,11 +76,23 @@ jobs:
           name: ${{ steps.artifact.outputs.filename }}
           path: ./build/distributions/*
 
-  # Run tests and upload a code coverage report
+  # Run tests and upload a code coverage report.
+  # The plugin supports a wide IDE range, so the suite runs against each of them. The first entry is the compile
+  # baseline (`platformVersion` in gradle.properties, == pluginSinceBuild); the K2 Analysis API differs between
+  # IDE generations, so every entry exercises the matching `k2-legacy` / `k2-modern` implementation.
   test:
-    name: Test
+    name: Test (IDE ${{ matrix.platform }})
     needs: [ build ]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - 2025.2.5
+          - 253.33813.99
+          - 261.27258.136
+          - 262.11879.100
+          - 2026.3
     steps:
 
       # Free GitHub Actions Environment Disk Space
@@ -111,18 +123,19 @@ jobs:
 
       # Run tests
       - name: Run Tests
-        run: ./gradlew check
+        run: ./gradlew check -PplatformVersion=${{ matrix.platform }}
 
       # Collect Tests Result of failed tests
       - name: Collect Tests Result
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: tests-result
+          name: tests-result-${{ matrix.platform }}
           path: ${{ github.workspace }}/build/reports/tests
 
       # Upload the Kover report to CodeCov
       - name: Upload Code Coverage Report
+        if: ${{ matrix.platform == '2025.2.5' }}
         uses: codecov/codecov-action@v5
         with:
           files: ${{ github.workspace }}/build/reports/kover/report.xml
