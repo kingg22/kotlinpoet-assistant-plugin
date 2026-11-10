@@ -3,8 +3,6 @@
 ## [Unreleased]
 
 ### Added
-- Compatibility with **IntelliJ IDEA 2026.2** (build 262). The plugin keeps working on IntelliJ IDEA 2025.2 (build 252)
-  and newer.
 
 ### Changed
 
@@ -17,6 +15,13 @@
 ### Security
 
 ### Technical
+
+## [0.0.2] - 2026-11-10
+
+### Added
+
+- Compatibility with **IntelliJ IDEA 2026.2** (build 262). The plugin keeps working on IntelliJ IDEA 2025.2 (build 252)
+  and newer.
 
 ## [0.0.1] - 2026-03-26
 
@@ -54,5 +59,6 @@ highlighting and navigation — no raw string reparsing.
 - Chain analysis uses an immutable state machine (`EmissionState` + `EmissionStateDelta`) safe to cache per call and
 compose across the chain.
 
-[Unreleased]: https://github.com/kingg22/kotlinpoet-assistant-plugin/compare/0.0.1...HEAD
+[Unreleased]: https://github.com/kingg22/kotlinpoet-assistant-plugin/compare/0.0.2...HEAD
+[0.0.2]: https://github.com/kingg22/kotlinpoet-assistant-plugin/compare/0.0.1...0.0.2
 [0.0.1]: https://github.com/kingg22/kotlinpoet-assistant-plugin/commits/0.0.1
