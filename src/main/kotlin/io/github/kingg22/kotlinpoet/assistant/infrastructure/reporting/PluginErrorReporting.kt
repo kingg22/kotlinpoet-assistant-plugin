@@ -1,5 +1,6 @@
 package io.github.kingg22.kotlinpoet.assistant.infrastructure.reporting
 
+import com.intellij.diagnostic.rethrowControlFlowException
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.diagnostic.ErrorReportSubmitter
 import com.intellij.openapi.diagnostic.IdeaLoggingEvent
@@ -82,7 +83,7 @@ fun openBrowser(url: String): Boolean {
             Desktop.getDesktop().browse(URI(url))
             return true
         } catch (e: Exception) {
-            if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
+            rethrowControlFlowException(e)
             logger.warn("Error opening browser to report fatal exception", e)
             return false
         }
@@ -96,7 +97,7 @@ fun copyToClipboard(text: String): Boolean {
         Toolkit.getDefaultToolkit().systemClipboard.setContents(StringSelection(text), null)
         return true
     } catch (e: Exception) {
-        if (Logger.shouldRethrow(e)) ExceptionUtil.rethrow(e)
+        rethrowControlFlowException(e)
         logger.warn("Error copying text to clipboard", e)
         return false
     }
@@ -130,7 +131,7 @@ fun buildBody(
     copiedClipboard: Boolean,
 ): String {
     val ideInfo = ApplicationInfo.getInstance()
-    val osInfo = "${SystemInfo.getOsNameAndVersion()} (${SystemInfo.OS_ARCH})"
+    val osInfo = "${OsMachine.DEFAULT} (${SystemInfo.OS_ARCH})"
     val jvmInfo = buildString {
         append(SystemInfo.JAVA_VENDOR)
         append(" ")
@@ -189,4 +190,31 @@ fun buildGitHubIssueUrl(title: String, body: String, labels: List<String>): Stri
     }
 
     return GITHUB_ISSUE_BASE_URL + params
+}
+
+private enum class OsMachine {
+    Windows,
+    MacOS,
+    Linux,
+    FreeBSD,
+    OHOS,
+    Other,
+    ;
+
+    companion object {
+        val DEFAULT = fromString(System.getProperty("os.name"))
+
+        fun fromString(os: String?): OsMachine {
+            var os = os
+            if (os != null) {
+                os = os.lowercase()
+                if (os.startsWith("windows")) return Windows
+                if (os.startsWith("mac")) return MacOS
+                if (os.startsWith("linux")) return Linux
+                if (os.startsWith("freebsd")) return FreeBSD
+                if (os.contains("harmony")) return OHOS
+            }
+            return Other
+        }
+    }
 }
